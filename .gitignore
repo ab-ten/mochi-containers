@@ -1,0 +1,10 @@
+*~
+Makefile.local
+/*/dropins/systemd/user/containers/*/*.d/user-*.conf
+/*/dropins/systemd/user/systemd/*/*.d/user-*.conf
+/*/dropins/systemd/root/*/*.d/user-*.conf
+/ssl_update/home/.config/systemd/user/lego.timer.d/*.conf
+/ssl_update/home/.config/systemd/user/lego.service.d/*.conf
+/denycheck.awk
+/.codex/
+/codex.sh

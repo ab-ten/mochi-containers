@@ -1,0 +1,21 @@
+[Unit]
+Description=ssl updater container (rootless)
+After=network-online.target
+Wants=network-online.target
+
+[Container]
+Image=localhost/ssl_update:dev
+Pull=never
+ContainerName=ssl_update
+Volume=@@SERVICE_PATH@@/container/scripts:/scripts:ro,Z
+Volume=@@INSTALL_ROOT@@/ssl_share:/var/ssl_share:z
+EnvironmentFile=@@SERVICE_PATH@@/ssl_update.env-user
+Exec=/scripts/run.sh
+DNS=8.8.8.8
+
+[Service]
+Type=oneshot
+Restart=no
+
+[Install]
+WantedBy=default.target

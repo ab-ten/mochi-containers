@@ -1,0 +1,18 @@
+module local_mochi_security 1.0;
+
+require {
+    type systemd_socket_proxyd_t;  # ExecStart が正の場合に使われるドメイン
+    type http_port_t;              # 80, 443, 8443/tcp のポート型
+    type http_cache_port_t;        # 8080/tcp のポート型
+    class tcp_socket name_bind;
+    class tcp_socket name_connect;
+}
+
+# 80, 443 listen
+allow systemd_socket_proxyd_t http_port_t:tcp_socket name_bind;
+
+# →  8080 転送
+allow systemd_socket_proxyd_t http_cache_port_t:tcp_socket name_connect;
+
+# →  8443 転送
+allow systemd_socket_proxyd_t http_port_t:tcp_socket name_connect;

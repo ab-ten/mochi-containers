@@ -1,0 +1,10 @@
+[Unit]
+Description=Reload nginx container when cert is updated
+
+[Path]
+# lego が touch するファイル（ホスト側パス）
+PathChanged=@@INSTALL_ROOT@@/ssl_share/certificates/.cert-updated
+Unit=cert-reload.service
+
+[Install]
+WantedBy=default.target

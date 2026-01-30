@@ -1,0 +1,8 @@
+[Unit]
+Description=Update nginx conf invoked in the container
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/podman exec nginx_rp /root/reload.sh
+
+#NOSTART

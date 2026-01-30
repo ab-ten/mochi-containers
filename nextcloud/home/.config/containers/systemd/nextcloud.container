@@ -1,0 +1,23 @@
+[Unit]
+Description=nextcloud origin container
+After=network-online.target
+Wants=network-online.target
+
+[Container]
+Image=localhost/nextcloud:dev
+Pull=never
+ContainerName=nextcloud
+PublishPort=127.0.0.1:@@NEXTCLOUD_PORT@@:80
+Volume=@@HTML_DIR@@:/var/www/html:Z
+Volume=@@NFS_ROOT@@/nextcloud/app:/var/www/html/app:Z
+Volume=@@NFS_ROOT@@/nextcloud/data:/var/www/html/data:Z
+Volume=@@NFS_ROOT@@/nextcloud/config:/var/www/html/config:Z
+EnvironmentFile=@@SERVICE_PATH@@/nextcloud.env-user
+
+[Service]
+TimeoutStopSec=30
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=default.target

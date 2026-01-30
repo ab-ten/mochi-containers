@@ -1,0 +1,4 @@
+FROM docker.io/goacme/lego
+
+# デフォルトの nginx 起動
+ENTRYPOINT ["/bin/sh"]

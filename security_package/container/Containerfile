@@ -1,0 +1,13 @@
+# -*- mode:Dockerfile; -*-
+
+FROM registry.opensuse.org/opensuse/tumbleweed
+
+RUN    zypper --non-interactive --gpg-auto-import-keys refresh \
+    && zypper --non-interactive install -y \
+         rpm-build rpmlint rpmdevtools make gzip tar xz \
+	 selinux-policy checkpolicy selinux-policy-devel policycoreutils libselinux-utils \
+	 pkg-config systemd \
+    && zypper -n clean \
+    && mkdir /out
+
+WORKDIR /rpmbuild

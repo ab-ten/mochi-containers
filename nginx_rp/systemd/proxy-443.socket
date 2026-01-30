@@ -1,0 +1,11 @@
+[Unit]
+Description=nginx_rp HTTPS Proxy Socket (port 443)
+Documentation=man:systemd.socket(5)
+
+[Socket]
+ListenStream=443
+#FreeBind=true
+Accept=false
+
+[Install]
+WantedBy=sockets.target

@@ -1,0 +1,19 @@
+[Unit]
+Description=Run Nextcloud cron.php every 5 minutes
+
+[Timer]
+# 初回起動（ユーザーの systemd が立ち上がってから）
+OnBootSec=5min
+# 前回の nextcloud-cron.service 実行からの間隔
+OnUnitActiveSec=5min
+
+# 取りこぼしを1回だけ埋める（PC再起動やユーザーsystemd停止後の復帰時）
+Persistent=true
+
+# 過度に厳密にしない（省電力＆負荷平準化）
+AccuracySec=1min
+
+Unit=nextcloud-cron.service
+
+[Install]
+WantedBy=timers.target

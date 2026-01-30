@@ -1,0 +1,10 @@
+[Unit]
+Description=nginx_rp HTTPS Proxy via systemd-socket-proxyd
+Documentation=man:systemd-socket-proxyd(1)
+Requires=@@ROOT_UNIT_PREFIX@@proxy-443.socket
+After=@@ROOT_UNIT_PREFIX@@proxy-443.socket
+
+[Service]
+#Type=notify
+ExecStart=/usr/lib/systemd/systemd-socket-proxyd 127.0.0.1:8443
+PrivateTmp=yes

@@ -1,0 +1,27 @@
+[Unit]
+Description=nginx_rp test HTTP container (rootless)
+After=network-online.target
+Wants=network-online.target
+
+[Container]
+Image=localhost/nginx_rp:dev
+Pull=never
+ContainerName=nginx_rp
+PublishPort=127.0.0.1:8080:80
+PublishPort=127.0.0.1:8443:443
+Volume=@@SERVICE_PATH@@/container/html:/usr/share/nginx/html:ro,Z
+Volume=@@SERVICE_PATH@@/container/conf:/etc/nginx/sites-available:ro,Z
+Volume=@@SERVICE_PATH@@/container/10-sites-symlink.sh:/docker-entrypoint.d/10-nginx-sites-symlink.sh:ro,Z
+Volume=@@SERVICE_PATH@@/container/reload.sh:/root/reload.sh:ro,Z
+Volume=@@INSTALL_ROOT@@/ssl_share/certificates:/var/ssl_share/certificates:ro,z
+Network=pasta:--map-host-loopback=@@MAP_LOCAL_ADDRESS@@
+StopSignal=SIGQUIT
+StopTimeout=30
+
+[Service]
+TimeoutStopSec=40
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=default.target

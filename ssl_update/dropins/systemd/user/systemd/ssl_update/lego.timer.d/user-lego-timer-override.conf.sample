@@ -1,0 +1,9 @@
+# drop in ファイルサンプル
+# lego-timer-override.conf にコピーして編集すれば設定を上書きできます。
+
+[Timer]
+# 既存の OnCalendar を消してから新しい値だけにしたい場合、一旦空の定義を書いてクリアする必要があります
+OnCalendar=
+
+# 例：毎日 04:30 に更新したい場合
+OnCalendar=*-*-* 04:30:00

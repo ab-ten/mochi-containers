@@ -1,0 +1,7 @@
+# シンプルな nginx ベース。設定/コンテンツは runtime に read-only bind mount する。
+FROM docker.io/nginx:alpine
+
+EXPOSE 80
+
+# デフォルトの nginx 起動
+CMD ["nginx", "-g", "daemon off;"]

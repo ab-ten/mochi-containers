@@ -1,0 +1,11 @@
+[Unit]
+Description=lego ACME client daily run timer
+
+[Timer]
+RandomizedDelaySec=1h
+OnCalendar=*-*-* 03:30:00
+Persistent=true
+Unit=lego.service
+
+[Install]
+WantedBy=timers.target

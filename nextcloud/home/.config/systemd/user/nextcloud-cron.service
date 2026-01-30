@@ -1,0 +1,16 @@
+[Unit]
+Description=Nextcloud background jobs (cron.php) in container "nextcloud"
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+
+# 重複実行の防止（cron.php が長引くと 5分周期で重なることがあるため）
+# systemd の RuntimeDirectory (%t) を使ってロックファイルを置きます
+ExecStart=/usr/bin/flock -n %t/nextcloud-cron.lock /usr/bin/podman exec -u www-data nextcloud php -f /var/www/html/cron.php
+
+# 念のためのタイムアウト（環境により調整）
+TimeoutStartSec=15min
+
+#NOSTART

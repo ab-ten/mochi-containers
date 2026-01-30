@@ -1,0 +1,11 @@
+[Unit]
+Description=nginx_rp HTTP Proxy Socket (port 80)
+Documentation=man:systemd.socket(5)
+
+[Socket]
+ListenStream=80
+#FreeBind=true
+Accept=false
+
+[Install]
+WantedBy=sockets.target
