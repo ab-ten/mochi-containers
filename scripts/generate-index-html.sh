@@ -1,6 +1,8 @@
 #!/bin/sh
 set -e
 
+echo -n "generating mochi-index: " >&2
+
 if [ -z "${SERVICE_PATH-}" ]; then
   echo "Missing required env: SERVICE_PATH" >&2
   exit 1
@@ -48,10 +50,13 @@ services="$(printf '%s\n' ${services} | sort -u)"
       else
         scheme="http"
       fi
-      echo "      <li><a href=\"${scheme}://${svc}.@@CERT_DOMAIN@@/\">${svc}</a></li>"
+      echo -n "${scheme}:${svc}.." >&2
+      echo "      <li><a href=\"${scheme}://${svc}.${CERT_DOMAIN}/\">${svc}</a></li>"
     done
     echo '    </ul>'
   fi
   echo '  </body>'
   echo '</html>'
 } > "${output}"
+
+echo " Done." >&2
