@@ -1,0 +1,29 @@
+FROM redmine:6.0-trixie
+
+# 任意：バージョン固定したいならコミット/タグを指定
+ARG WIKI_PAGE_TREE_SHA=cd543aee9ccaafeeb7b79e642292a01c07541d0c
+
+USER root
+
+# git が無いイメージの場合に備えて入れておく（入っていれば実質ノーコスト）
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends git ca-certificates \
+  && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /usr/src/redmine
+
+RUN set -eu; \
+  rm -rf /tmp/redmine_wiki_page_tree; \
+  mkdir -p /tmp/redmine_wiki_page_tree; \
+  cd /tmp/redmine_wiki_page_tree; \
+  git init; \
+  git remote add origin https://github.com/ledsun/redmine_wiki_page_tree.git; \
+  git fetch --depth 1 origin "${WIKI_PAGE_TREE_SHA}"; \
+  git checkout --detach FETCH_HEAD; \
+  mv redmine_wiki_page_tree /usr/src/redmine/plugins/; \
+  cd /; \
+  rm -rf /tmp/redmine_wiki_page_tree; \
+  chown -R redmine:redmine /usr/src/redmine/plugins/redmine_wiki_page_tree
+
+WORKDIR /usr/src/redmine
+USER redmine

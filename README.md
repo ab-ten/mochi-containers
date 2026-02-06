@@ -53,7 +53,7 @@ OpenSUSE MicroOS 上で **rootless Podman + systemd user unit** を使用し、*
 ## Configuration Surface
 
 - `Makefile.local` に環境依存の差分を集約します
-- `SERVICES` を絞って段階導入します（例: `ssl_update` → `nginx_rp` → `nextcloud`）
+- `SERVICES` を絞って段階導入します（例: `ssl_update` + `nginx_rp` + `security_package` →  `redmine`, `nextcloud`）
 - `SECRETS_DIR` で DNS API キーなどを管理します
 
 ---
@@ -64,6 +64,7 @@ OpenSUSE MicroOS 上で **rootless Podman + systemd user unit** を使用し、*
   - `nginx_rp/README.md`
   - `ssl_update/README.md`
   - `nextcloud/README.md`
+  - `redmine/README.md`
   - `security_package/README.md`
 
 ---
