@@ -36,7 +36,13 @@ pre-build-root:
 		echo "ERROR: setpriv が見つかりません。util-linux をインストールしてください。"; \
 		exit 1; \
 	fi; \
-	install -d -m 770 "$$dir"; \
+	if ! test -d "$$dir"; then \
+		if ! install -d -o "${SERVICE_USER}" -g "$$gid" -m 2770 "$$dir"; then \
+			echo "ERROR: 必要なディレクトリが存在しません。作成に失敗しました。 $$dir"; \
+			echo "ERROR: $$dir が NFS の場合は UsersSetup.md を参照し NFS サーバー側でディレクトリを作成してください。"; \
+			exit 1; \
+		fi; \
+	fi; \
 	tmpfile="$$dir/.write_test_$$"; \
 	if setpriv --reuid="$$uid" --regid="$$gid" --clear-groups -- sh -c "umask 002; : > '$$tmpfile'"; then \
 		setpriv --reuid=`id -u ${SERVICE_USER}` --regid="$$gid" --clear-groups -- \
