@@ -2,7 +2,7 @@
 # sudo で root になれる一般ユーザーで make deploy する想定
 
 export
-SERVICES = ssl_update nextcloud nginx_rp security_package
+SERVICES = ssl_update nextcloud redmine nginx_rp security_package
 INSTALL_ROOT = /srv/project
 NFS_ROOT = /srv/nfs/containers
 SERVICE_PREFIX = mochi
