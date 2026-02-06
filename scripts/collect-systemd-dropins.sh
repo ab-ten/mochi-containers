@@ -28,7 +28,7 @@ INSTALL_ROOT="${INSTALL_ROOT%/}"
 # 残しておくべきdrop-inは存在しないため全部削除する
 cleanup_user_dropins() {
   local dest_root="$1"
-  [ -d "${dest_root}" ] || return
+  [ -d "${dest_root}" ] || return 0
   find "${dest_root}" -type f -name "*.conf" -delete
 }
 
