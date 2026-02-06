@@ -44,6 +44,7 @@
 - `container/10-sites-symlink.sh` が `/etc/nginx/sites-available` から `conf.d` へ symlink を作成します。
 - `http_*.conf` は常時有効、`https_*.conf` は証明書ファイルが揃った場合のみ有効化します。
 - `pre-build-root` が `SERVICES` に含まれる各サービスの `http_*.conf` / `https_*.conf` を集約し、`container/conf/` に配置します。
+- `container/generate-index.sh` が `container/conf/` の一覧から `container/html/index.html` を生成します。
 - `container/reload.sh` は symlink 更新 → `nginx -t` → `nginx -s reload` を実行します。
 
 ## トラブルシュート / 注意点

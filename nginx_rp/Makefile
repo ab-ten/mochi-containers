@@ -5,13 +5,15 @@ SERVICE_USER = nginx_rp
 REPLACE_FILES_USER = \
 	${SERVICE_PATH}/container/conf/https_default.conf \
 	${SERVICE_PATH}/container/conf/http_default.conf \
-	${SERVICE_PATH}/container/10-sites-symlink.sh
+	${SERVICE_PATH}/container/10-sites-symlink.sh \
+	${SERVICE_PATH}/container/html/index.html
 
 -include Makefile.local
 
 
 pre-build-root:
 	@sh ../scripts/collect-nginx-conf.sh
+	@sh ./container/generate-index.sh
 
 post-build-root:
 	chmod 755 ${SERVICE_PATH}/container/*.sh ${SERVICE_PATH}/container/html
