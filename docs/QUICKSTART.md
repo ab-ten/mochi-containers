@@ -42,6 +42,9 @@ SELinux が有効な環境では、`security_package` をデプロイして SELi
 ### 3.6 `nextcloud` を使う場合
 `SECRETS_DIR/nextcloud.env-user` の作成が必要です。内容は `nextcloud/README.md` を参照してください。
 
+### 3.7 `redmine` を使う場合
+`SECRETS_DIR/redmine.env-user` の作成が必要です。内容は `redmine/README.md` を参照してください。
+
 ## 4. リポジトリ準備
 1) リポジトリを取得し、`Makefile.local` を作成します。
 2) `SERVICES` の並び順を決めます（例: `ssl_update → 各サービス → nginx_rp`）。

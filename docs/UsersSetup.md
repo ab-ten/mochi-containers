@@ -16,11 +16,14 @@ useradd -u 20011 -g 20011 ssl_update
 groupadd security_package -g 20012
 useradd -u 20012 -g 20012 security_package 
 
-pw groupadd nextcloud -g 20013
-pw useradd nextcloud -u 20013 -g 20013 nextcloud
+groupadd nextcloud -g 20013
+useradd -u 20013 -g 20013 nextcloud
+
+groupadd redmine -g 20014
+useradd -u 20014 -g 20014 redmine
 ```
 
-nextcloud/www-data ユーザーID取得（NFS使用時に必要です）
+nextcloud/www-data ユーザーID、redmine/redmine グループID取得（NFS使用時に必要です）
 
 ```
 $ sudo make -C nextcloud print-uid-gid
@@ -28,6 +31,13 @@ make: Entering directory '/path/to/mochi-containers/nextcloud'
 UID_NC: 431104
 GID_NC: 431104
 make: Leaving directory '/path/to/mochi-containers/nextcloud'
+
+$ sudo make -C redmine print-uid-gid
+make: Entering directory '/path/to/mochi-containers/redmine'
+UID_NC: 497606
+GID_NC: 497606
+make: Leaving directory '/path/to/mochi-containers/redmine'
+
 ```
 
 ### freebsd NFSv4 server ユーザー作成（UID/GID は linux と合わせること）
@@ -47,6 +57,10 @@ pw useradd security_package -u 20012 -g security_package -m -s /usr/sbin/nologin
 pw groupadd nextcloud -g 20013
 pw useradd nextcloud -u 20013 -g nextcloud -m -s /usr/sbin/nologin
 chown nginx_rp:nginx_rp /ztank/nfsv4root/containers/nginx_rp
+
+pw groupadd redmine -g 20014
+pw useradd redmine -u 20014 -g redmine -m -s /usr/sbin/nologin
+
 ```
 
 ### freebsd NFSv4 server NFS 設定
@@ -59,10 +73,11 @@ V4: /ztank/nfsv4root         -sec=sys -network 192.168.0.0/24
 /ztank/nfsv4root/containers  -network 192.168.0.200/32
 ```
 
-nfs 用ディレクトリ作成（431104 の数値は UID_NC の数値に置き換える）
+nfs 用ディレクトリ作成（431104, 497606 の数値は print-uid-gid で調べた数値に置き換える）
 ```
 install -d -o nextcloud -g nextcloud -m 0711 /ztank/nfsv4root/containers/nextcloud
 install -d -o 431104 -g nextcloud -m 770 /ztank/nfsv4root/containers/nextcloud/config /ztank/nfsv4root/containers/nextcloud/data /ztank/nfsv4root/containers/nextcloud/apps
+install -d -g 497606 -o redmine -m 2770 /ztank/nfsv4root/containers/redmine
 ```
 
 ### mochi linux server NFS 設定
