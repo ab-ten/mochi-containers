@@ -27,7 +27,8 @@
 ### `scripts/pre-deploy-check.sh` で必須
 - `SERVICE_NAME`, `SERVICE_USER`
 - `SERVICE_PATH`, `INSTALL_ROOT`, `NFS_ROOT`
-- `MAP_LOCAL_ADDRESS`
+- `SERVICES`
+- `CERT_DOMAIN`, `MAP_LOCAL_ADDRESS`
 
 ### `scripts/deploy-service.sh` で必須
 - `SERVICE_NAME`, `SERVICE_USER`
@@ -69,7 +70,7 @@
 4) **所有権統一**: `chown -R <service>:<service> INSTALL_ROOT/<service> /home/<service>`。
 5) **linger 有効化**: `loginctl enable-linger <service>`。
 6) **pre-build-user / pre-build-root**: Makefile にターゲットがある場合のみ実行。user 側は `INSTALL_ROOT` / `SERVICE_PATH` を環境で渡してサービスユーザー権限、root 側はそのまま。
-   - `nginx_rp` の `pre-build-root` は `SERVICES` に含まれる各サービスの `${INSTALL_ROOT}/<service>/http_<service>.conf` / `https_<service>.conf` を集約して `nginx_rp/container/conf/` にコピーするため、`SERVICES` の並びは `ssl_update` → 各サービス → `nginx_rp` の順にしておく。
+   - `nginx_rp` の `pre-build-root` は `scripts/collect-nginx-conf.sh` で `SERVICES` に含まれる各サービスの `${INSTALL_ROOT}/<service>/http_<service>.conf` / `https_<service>.conf` を `nginx_rp/container/conf/` に集約し、続けて `scripts/generate-index-html.sh` で `nginx_rp/container/html/index.html` を再生成する。`SERVICES` の並びは `ssl_update` → 各サービス → `nginx_rp` の順にしておく。
 7) **replace-files-user / replace-files-root**: `REPLACE_FILES_USER` / `REPLACE_FILES_ROOT` が空でなければ `make replace-files-user` / `make replace-files-root` を実行。
 8) **コンテナビルド**: `container/` と `container.*` ディレクトリを検出し、存在するディレクトリごとに `podman build` を実行する。
 9) **post-build-user / post-build-root**: あれば pre-build と同様に実行。

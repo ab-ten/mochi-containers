@@ -82,3 +82,4 @@ sudo systemctl -M "<service_user>@.host" --user status <unit>
 - `docs/deploy-service.md`
 - `docs/pre-deploy-check.md`
 - `docs/collect-systemd-dropins.md`
+- `docs/generate-index-html.md`

@@ -30,7 +30,7 @@ fi
 
 NFS_GROUP="svc_nfs_clients"
 
-required_vars=(SERVICE_NAME SERVICE_USER SERVICE_PATH INSTALL_ROOT NFS_ROOT MAP_LOCAL_ADDRESS)
+required_vars=(SERVICE_NAME SERVICE_USER SERVICE_PATH INSTALL_ROOT NFS_ROOT SERVICES CERT_DOMAIN MAP_LOCAL_ADDRESS)
 missing=()
 for var in "${required_vars[@]}"; do
   if [ -z "${!var-}" ]; then

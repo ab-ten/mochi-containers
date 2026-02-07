@@ -12,6 +12,7 @@ REPLACE_FILES_USER = \
 
 pre-build-root:
 	@sh ../scripts/collect-nginx-conf.sh
+	@sh ../scripts/generate-index-html.sh
 
 post-build-root:
 	chmod 755 ${SERVICE_PATH}/container/*.sh ${SERVICE_PATH}/container/html

@@ -20,7 +20,7 @@
 ## Docs
 - デプロイ仕様は `docs/DEPLOYMENT.md` に集約。更新があればここも最新に反映すること。
 - 作業メモや現在の進行状況は `CURRENT.md` を必要に応じて更新・参照すること。
-- `scripts/pre-deploy-check.sh` と `docs/pre-deploy-check.md`、`scripts/deploy-service.sh` と `docs/deploy-service.md` の内容は常に同期してください（詳細は `scripts/AGENTS.md` を参照）。
+- `scripts/pre-deploy-check.sh` と `docs/pre-deploy-check.md`、`scripts/deploy-service.sh` と `docs/deploy-service.md`、`scripts/generate-index-html.sh` と `docs/generate-index-html.md` の内容は常に同期してください（詳細は `scripts/AGENTS.md` を参照）。
 - デプロイ関連の必須環境変数は `docs/DEPLOYMENT.md` / `docs/pre-deploy-check.md` / `docs/deploy-service.md` で同一の一覧になるよう維持してください。
 - 各サービスの `README.md` は、以下の章構成を基準に作成・更新してください。運用手順は `make deploy` / `make <service>-deploy` と `make stop` / `make <service>-stop` を前提とし、詳細なデプロイ手順は不要です。
   - 概要（目的 / 非目的 / 対象範囲）
