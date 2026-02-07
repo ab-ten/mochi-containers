@@ -3,8 +3,8 @@ set -e
 
 echo -n "generating mochi-index: " >&2
 
-if [ -z "${SERVICE_PATH-}" ]; then
-  echo "Missing required env: SERVICE_PATH" >&2
+if [ -z "${SERVICE_PATH-}" ] || [ -z "${SERVICES-}" ]; then
+  echo "Missing required env: SERVICE_PATH/SERVICES" >&2
   exit 1
 fi
 
@@ -12,22 +12,15 @@ conf_dir="${SERVICE_PATH}/container/conf"
 output="${SERVICE_PATH}/container/html/index.html"
 
 services=""
-for file in "${conf_dir}"/https_*.conf "${conf_dir}"/http_*.conf; do
-  [ -f "${file}" ] || continue
-  base="$(basename "${file}")"
-  case "${base}" in
-    http_default.conf|https_default.conf) continue ;;
-  esac
-  svc="${base#http_}"
-  svc="${svc#https_}"
-  svc="${svc%.conf}"
+for svc in ${SERVICES}; do
+  [ "${svc}" = "${SERVICE_NAME-}" ] && continue
   case " ${services} " in
-    *" ${svc} "*) ;;
-    *) services="${services} ${svc}" ;;
+    *" ${svc} "*) continue ;;
   esac
+  if [ -f "${conf_dir}/https_${svc}.conf" ] || [ -f "${conf_dir}/http_${svc}.conf" ]; then
+    services="${services} ${svc}"
+  fi
 done
-
-services="$(printf '%s\n' ${services} | sort -u)"
 
 {
   echo '<!doctype html>'

@@ -27,6 +27,7 @@
 ### `scripts/pre-deploy-check.sh` で必須
 - `SERVICE_NAME`, `SERVICE_USER`
 - `SERVICE_PATH`, `INSTALL_ROOT`, `NFS_ROOT`
+- `SERVICES`
 - `CERT_DOMAIN`, `MAP_LOCAL_ADDRESS`
 
 ### `scripts/deploy-service.sh` で必須

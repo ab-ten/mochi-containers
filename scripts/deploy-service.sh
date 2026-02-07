@@ -141,7 +141,7 @@ user_unit_file_path() {
   fi
 }
 
-required_vars=(SERVICE_NAME SERVICE_USER SERVICE_PATH INSTALL_ROOT NFS_ROOT SERVICE_PREFIX SECRETS_DIR)
+required_vars=(SERVICE_NAME SERVICE_USER SERVICE_PATH INSTALL_ROOT NFS_ROOT SERVICE_PREFIX SECRETS_DIR SERVICES)
 missing=()
 for var in "${required_vars[@]}"; do
   if [ -z "${!var-}" ]; then

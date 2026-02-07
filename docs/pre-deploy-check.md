@@ -17,6 +17,7 @@
 - `SERVICE_PATH` … `/srv/project/<service>` を指す絶対パス
 - `INSTALL_ROOT` … `/srv/project/` のようなルート。末尾スラッシュは許容するが内部では削る
 - `NFS_ROOT` … NFS 永続ディレクトリのルート。末尾スラッシュは許容するが内部では削る
+- `SERVICES` … サービス一覧（スペース区切り）。`collect-nginx-conf.sh` / `generate-index-html.sh` など後続処理で参照する
 - `CERT_DOMAIN` … 証明書ドメイン。`generate-index-html.sh` が生成するリンク先ドメインにも使用する
 - `MAP_LOCAL_ADDRESS` … pasta の `--map-host-loopback` に割り当てるローカルアドレス
 未定義または空の場合は即エラーとします。
