@@ -3,13 +3,21 @@ set -e
 
 echo -n "generating mochi-index: " >&2
 
-if [ -z "${SERVICE_PATH-}" ] || [ -z "${SERVICES-}" ]; then
-  echo "Missing required env: SERVICE_PATH/SERVICES" >&2
+if [ -z "${SERVICE_PATH-}" ] || [ -z "${SERVICES-}" ] || [ -z "${SERVICE_USER-}" ]; then
+  echo "Missing required env: SERVICE_PATH/SERVICES/SERVICE_USER" >&2
+  exit 1
+fi
+
+if [ "$(id -u)" -ne 0 ]; then
+  echo "This script must be run as root." >&2
   exit 1
 fi
 
 conf_dir="${SERVICE_PATH}/container/conf"
 output="${SERVICE_PATH}/container/html/index.html"
+tmp_output="${output}.$$"
+
+echo "${output} " >&2
 
 services=""
 for svc in ${SERVICES}; do
@@ -21,6 +29,8 @@ for svc in ${SERVICES}; do
     services="${services} ${svc}"
   fi
 done
+
+trap 'rm -f "${tmp_output}"' EXIT HUP INT TERM
 
 {
   echo '<!doctype html>'
@@ -50,6 +60,11 @@ done
   fi
   echo '  </body>'
   echo '</html>'
-} > "${output}"
+} > "${tmp_output}"
+
+chown "${SERVICE_USER}:${SERVICE_USER}" "${tmp_output}"
+chmod 644 "${tmp_output}"
+mv -f "${tmp_output}" "${output}"
+trap - EXIT HUP INT TERM
 
 echo " Done." >&2

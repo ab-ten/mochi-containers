@@ -14,7 +14,12 @@
 ## 必須環境変数
 - `SERVICE_PATH`（必須）: 対象サービスの配置先パスです。未設定の場合は即エラーで終了します。
 - `SERVICES`（必須）: 公開対象サービス一覧（スペース区切り）です。この一覧順でインデックス項目を生成します。
+- `SERVICE_USER`（必須）: 生成する `index.html` の所有者・グループに使用します。未設定の場合は即エラーで終了します。
 - `CERT_DOMAIN`（実質必須）: 生成するリンク先ドメインのサフィックスに使用します。未設定でもスクリプトは動作しますが、`https://<service>./` のような不正な URL になるため、デプロイ時は必ず設定してください。
+
+## 実行ユーザー要件
+- 本スクリプトは root（`id -u = 0`）での実行を必須とします。
+- root 以外で実行した場合はエラーで終了します。
 
 ## 入出力
 - 入力ディレクトリ: `${SERVICE_PATH}/container/conf`
@@ -29,11 +34,11 @@
    - `https_<service>.conf` が存在する場合は `https`
    - 存在しない場合は `http`
 6. `SERVICES` に含まれないサービスの残存 conf（過去デプロイ残骸）は無視します。
-7. 出力先 HTML は都度上書きします。
+7. 出力は `index.html.$$`（`$$` はシェル PID）に生成し、`SERVICE_USER:SERVICE_USER` へ `chown` してから `index.html` に `mv` で置換します。
 
 ## ログ出力
 - 進捗は標準エラーに出力します。
-- 例: `generating mochi-index: https:nextcloud..http:redmine.. Done.`
+- 例: `generating mochi-index: /srv/project/nginx_rp/container/html/index.html https:nextcloud..http:redmine.. Done.`
 
 ## 制約・注意点
 - サービス名に空白が含まれることは想定していません。
