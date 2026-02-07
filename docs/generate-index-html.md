@@ -9,6 +9,7 @@
 ## 呼び出し前提
 - 呼び出し元は `nginx_rp/Makefile` の `pre-build-root` ターゲットです。
 - 実行順は `scripts/collect-nginx-conf.sh` の後です。先に `http_<service>.conf` / `https_<service>.conf` を収集してから本スクリプトで HTML を生成します。
+- deploy 時は `deploy-service.sh` の `rsync -a --delete` が先に実行され、`${SERVICE_PATH}/container/conf/` はリポジトリ状態に初期化された後で `collect-nginx-conf.sh` が再収集します。
 
 ## 必須環境変数
 - `SERVICE_PATH`（必須）: 対象サービスの配置先パスです。未設定の場合は即エラーで終了します。

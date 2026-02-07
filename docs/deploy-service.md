@@ -47,6 +47,7 @@
 5. 配置ディレクトリ準備: ホームは OS 既定の `/home/<service>` を使用。`install -d -o ${SERVICE_USER} -g ${SERVICE_USER} -m 0750` で `${SERVICE_PATH}`、`/home/${SERVICE_USER}`、`/home/${SERVICE_USER}/.config/containers/systemd`、`/home/${SERVICE_USER}/.config/systemd/user` を掘る。
 6. ソース配置（rsync）:
    - ワークツリー → `${SERVICE_PATH}/` へ `rsync -a --delete --exclude '.git' --exclude '*.swp' --exclude '*~' ./ "${SERVICE_PATH}/"`。
+   - `nginx_rp` の `${SERVICE_PATH}/container/conf/` はこの `rsync --delete` で毎回リポジトリ状態へリセットされるため、前回デプロイ時の収集結果は引き継がれません。
    - user unit / quadlet / timer → `/home/${SERVICE_USER}/` へ `rsync -a --delete --exclude '.cache' --exclude '.local' --exclude '*~' "./home/" "/home/${SERVICE_USER}/"`（`.config/containers/systemd/` と `.config/systemd/user/` をまとめて同期。ホームはデプロイ先で直接管理する）。
    - `dropins/systemd/` 配下の `*.conf` に `scripts/replace-deploy-vars.sh` を適用し、配布元の drop-in を先に置換する。
    - `scripts/replace-deploy-vars.sh` を `/home/${SERVICE_USER}/.config/containers/systemd/` と `/home/${SERVICE_USER}/.config/systemd/user/` 配下の unit ファイル全て（`.d/*.conf` も含む）に実行し、`@@ROOT_UNIT_PREFIX@@` / `@@SERVICE_PATH@@` / `@@INSTALL_ROOT@@` / `@@CERT_DOMAIN@@` などを置換する（置換後に `chown` で権限を整える）。
@@ -58,7 +59,7 @@
 8. pre-build フック:
    - `grep -q '^pre-build-user:' Makefile` で存在したら `sudo -u ${SERVICE_USER} INSTALL_ROOT=... NFS_ROOT=... SERVICE_PATH=... make -C <初期cwd> pre-build-user`（`cwd` は `deploy-service.sh` を呼び出したサービスディレクトリ）。
    - `grep -q '^pre-build-root:' Makefile` で存在したら root のまま `make pre-build-root`。
-   - `nginx_rp` では `pre-build-root` 内で `scripts/collect-nginx-conf.sh` と `scripts/generate-index-html.sh` を実行し、`container/conf/` の vhost 設定収集と `container/html/index.html` の再生成を行う。
+   - `nginx_rp` では `pre-build-root` 内で `scripts/collect-nginx-conf.sh` と `scripts/generate-index-html.sh` を実行し、`container/conf/` の vhost 設定収集と `container/html/index.html` の再生成を行う。実行順は「`rsync --delete` で初期化 → `collect-nginx-conf.sh` で `SERVICES` 分を収集 → `generate-index-html.sh` で一覧生成」です。
 9. `replace-files-user` / `replace-files-root`:
    - `REPLACE_FILES_USER` / `REPLACE_FILES_ROOT` が空でなければ `make replace-files-user` / `make replace-files-root` を実行する。
 10. コンテナビルド:
