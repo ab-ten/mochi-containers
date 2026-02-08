@@ -1,0 +1,19 @@
+[Unit]
+Description=trilium container (rootless)
+After=network-online.target
+Wants=network-online.target
+
+[Container]
+Image=localhost/trilium:dev
+Pull=never
+ContainerName=trilium
+PublishPort=127.0.0.1:@@TRILIUM_PORT@@:8080
+Volume=@@DBFILE_DIR@@:/home/node/trilium-data:Z
+
+[Service]
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=40
+
+[Install]
+WantedBy=default.target

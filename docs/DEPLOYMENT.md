@@ -13,6 +13,9 @@
 - 環境差異やオーバーライドは考慮不要。ロールバックは git でタグ/コミットを指定して再デプロイする。
 
 ## 環境変数
+### サービス固有変数
+- サービス固有の make 変数（例: `TRILIUM_PORT`, `DBFILE_DIR` など）は各サービスの `Makefile` で定義して `export` します。ルート `Makefile` では定義しません。
+
 ### ルート `Makefile` から子 `make` に引き渡す環境変数
 - `INSTALL_ROOT`
 - `NFS_ROOT`
