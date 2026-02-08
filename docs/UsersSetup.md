@@ -21,6 +21,9 @@ useradd -u 20013 -g 20013 nextcloud
 
 groupadd redmine -g 20014
 useradd -u 20014 -g 20014 redmine
+
+groupadd trilium -g 20015
+useradd -u 20015 -g 20015 trilium
 ```
 
 nextcloud/www-data ユーザーID、redmine/redmine グループID取得（NFS使用時に必要です）
@@ -61,6 +64,8 @@ chown nginx_rp:nginx_rp /ztank/nfsv4root/containers/nginx_rp
 pw groupadd redmine -g 20014
 pw useradd redmine -u 20014 -g redmine -m -s /usr/sbin/nologin
 
+pw groupadd trilium -g 20015
+pw useradd trilium -u 20015 -g redmine -m -s /usr/sbin/nologin
 ```
 
 ### freebsd NFSv4 server NFS 設定
