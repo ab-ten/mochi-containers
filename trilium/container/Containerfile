@@ -1,1 +1,10 @@
-FROM ghcr.io/triliumnext/notes:latest
+FROM ghcr.io/triliumnext/trilium:stable
+
+USER root
+
+RUN apk add --no-cache tzdata
+
+ENV TZ=Asia/Tokyo
+
+RUN ln -sf "/usr/share/zoneinfo/${TZ}" /etc/localtime; \
+    echo "${TZ}" > /etc/timezone
