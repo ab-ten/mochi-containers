@@ -16,6 +16,9 @@
 - `home/.config/containers/systemd/` … rootless systemd user unit / quadlet をまとめる置き場（リポジトリ上）。デプロイ後の稼働場所は `/home/<service>/.config/containers/systemd/`。
 - `home/.config/systemd/user/` … user systemd timer / service を置く標準ディレクトリ（リポジトリ上）。デプロイ後の稼働場所は `/home/<service>/.config/systemd/user/`。
 
+## サービス固有変数の定義場所
+- サービス固有の make 変数（例: `TRILIUM_PORT`, `DBFILE_DIR` など）は各サービスの `Makefile` で定義して `export` し、ルート `Makefile` では定義しません。
+
 ## 必須環境変数
 - `SERVICE_NAME`, `SERVICE_USER` … サービス名と実行ユーザー（同一前提）です。
 - `SERVICE_PATH` … 配置先 `/srv/project/<service>` の絶対パスです。`INSTALL_ROOT` と合わせて正規化チェックします。
