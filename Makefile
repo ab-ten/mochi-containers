@@ -20,7 +20,7 @@ BASE_REPO_DIR = ${CURDIR}
 all:
 	@echo "Available services: $(SERVICES)"
 
-deploy: $(SERVICES:%=%-deploy)
+deploy: stop $(SERVICES:%=%-deploy)
 
 stop: $(SERVICES:%=%-stop)
 

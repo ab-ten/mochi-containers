@@ -58,7 +58,7 @@ SELinux の場合は、INSTALL_ROOT/rpms に作成された rpm パッケージ�
 sudo make deploy
 ```
 
-`SERVICES` の一覧に従って順番にデプロイされます。サービス単体で実行したい場合は `make <service>-deploy` を使用してください（例: `make nginx_rp-deploy`）。
+`make deploy` は `SERVICES` 一覧の全サービスを先に停止してから、`SERVICES` の順番にデプロイします。これは `trilium` の websocket セッションを先に終了させ、`nginx_rp` 停止時の graceful shutdown タイムアウトを避けるためです。サービス単体で実行したい場合は `make <service>-deploy` を使用してください（例: `make nginx_rp-deploy`）。
 
 ## 6. 動作確認（最小）
 以下は最低限の確認例です。

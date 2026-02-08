@@ -4,7 +4,7 @@
 
 ## ゴールと前提
 - 役割: `mk/services.mk` の `deploy` ターゲット経由でサービスごとに rsync デプロイとビルドを行い、systemd (--user / root) を最新化する。
-- 呼び出し元: ルート `Makefile` → `sudo ... make -C <service> deploy`。`cwd` はサービスディレクトリ（例: `nginx_rp/`）。この直前に `scripts/pre-deploy-check.sh` が走って、ユーザーやディレクトリの前提を担保済み。
+- 呼び出し元: ルート `Makefile` の `make deploy` は `stop` 依存を持ち、全サービス停止を先に実行した後で `sudo ... make -C <service> deploy` を順次呼び出す。`cwd` はサービスディレクトリ（例: `nginx_rp/`）。この直前に `scripts/pre-deploy-check.sh` が走って、ユーザーやディレクトリの前提を担保済み。
 - rootless Podman 前提。systemd user unit / quadlet はリポジトリ上では `<service>/home/.config/containers/systemd/` に集約し、デプロイ先では `/home/<service>/.config/containers/systemd/` に配置する（nginx_rp もこの構成）。
 
 ## 参照するディレクトリ構造（例: `nginx_rp/`）

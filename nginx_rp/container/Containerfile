@@ -4,4 +4,4 @@ FROM docker.io/nginx:alpine
 EXPOSE 80
 
 # デフォルトの nginx 起動
-CMD ["nginx", "-g", "daemon off;"]
+CMD ["nginx", "-g", "daemon off; worker_shutdown_timeout 30s;"]
