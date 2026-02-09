@@ -3,7 +3,9 @@
 set -euo pipefail
 
 START_DIR=$PWD
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+# SCRIPT_DIR や mk/ は先に prepare-common で INSTALL_ROOT 下に rsync している。
+# （このリポジトリのディレクトリがサービスユーザーから読めるとは限らないので world readable にしている）
+SCRIPT_DIR="${INSTALL_ROOT}/scripts"
 REPLACE_SCRIPT="${SCRIPT_DIR}/replace-deploy-vars.sh"
 STOP_ONLY=No
 
@@ -281,7 +283,7 @@ shopt -s nullglob
 container_dirs=("${SERVICE_PATH}"/container "${SERVICE_PATH}"/container.*)
 shopt -u nullglob
 built_any=No
-default_build_script="${INSTALL_ROOT}/scripts/container-build-common.sh"
+default_build_script="${SCRIPT_DIR}/container-build-common.sh"
 for dir in "${container_dirs[@]}"; do
   [ -d "${dir}" ] || continue
   base="$(basename "${dir}")"
