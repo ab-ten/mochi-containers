@@ -4,7 +4,7 @@
 
 ## ゴールと前提
 - 役割: `mk/services.mk` の `deploy` ターゲット経由でサービスごとに rsync デプロイとビルドを行い、systemd (--user / root) を最新化する。
-- 呼び出し元: ルート `Makefile` → `sudo ... make -C <service> deploy`。`cwd` はサービスディレクトリ（例: `nginx_rp/`）。この直前に `scripts/pre-deploy-check.sh` が走って、ユーザーやディレクトリの前提を担保済み。
+- 呼び出し元: ルート `Makefile` の `make deploy` は `stop` 依存を持ち、全サービス停止を先に実行した後で `sudo ... make -C <service> deploy` を順次呼び出す。`cwd` はサービスディレクトリ（例: `nginx_rp/`）。この直前に `scripts/pre-deploy-check.sh` が走って、ユーザーやディレクトリの前提を担保済み。
 - rootless Podman 前提。systemd user unit / quadlet はリポジトリ上では `<service>/home/.config/containers/systemd/` に集約し、デプロイ先では `/home/<service>/.config/containers/systemd/` に配置する（nginx_rp もこの構成）。
 
 ## 参照するディレクトリ構造（例: `nginx_rp/`）
@@ -15,6 +15,9 @@
 - `user-*.conf` はユーザーカスタマイズ用として `.gitignore` に登録済み。drop-in は必ず全削除で上書きされるため、カスタマイズしたい場合は `<service>/dropins/systemd/` 配下に `user-*.conf` として置いてデプロイで反映する。
 - `home/.config/containers/systemd/` … rootless systemd user unit / quadlet をまとめる置き場（リポジトリ上）。デプロイ後の稼働場所は `/home/<service>/.config/containers/systemd/`。
 - `home/.config/systemd/user/` … user systemd timer / service を置く標準ディレクトリ（リポジトリ上）。デプロイ後の稼働場所は `/home/<service>/.config/systemd/user/`。
+
+## サービス固有変数の定義場所
+- サービス固有の make 変数（例: `TRILIUM_PORT`, `DBFILE_DIR` など）は各サービスの `Makefile` で定義して `export` し、ルート `Makefile` では定義しません。
 
 ## 必須環境変数
 - `SERVICE_NAME`, `SERVICE_USER` … サービス名と実行ユーザー（同一前提）です。

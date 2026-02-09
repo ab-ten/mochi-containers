@@ -10,6 +10,7 @@
 - 入口は各サービスの `Makefile` → `mk/services.mk` の `deploy` ターゲットから。`../scripts/pre-deploy-check.sh` として呼ばれる。
 - ルートの `Makefile` からは `sudo INSTALL_ROOT=... SERVICE_PATH=... make -C <service> deploy` で実行される想定。ユーザー/ディレクトリ操作があるため root 前提で実装する。
 - カレントディレクトリはサービスディレクトリ（例: `nginx_rp/`）。`SERVICE_NAME` と `SERVICE_USER` は一致している前提。
+- サービス固有の make 変数（例: `TRILIUM_PORT`, `DBFILE_DIR` など）は各サービスの `Makefile` で定義して `export` する。
 
 ## 必須環境変数
 - `SERVICE_NAME` … サービス名（ディレクトリ名と一致）

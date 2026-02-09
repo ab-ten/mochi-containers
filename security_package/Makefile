@@ -25,7 +25,7 @@ RPM_BUILD_INPUTS := rpmbuild/build.sh rpmbuild/VERSION.mk rpmbuild/SPECS/local-m
 
 pre-build-root:
 	install -o "${SERVICE_USER}" -g "${SERVICE_USER}" -m 755 ../LICENSE ${SERVICE_PATH}/rpmbuild/SOURCES/
-	install -d -m 755 -o "${SERVICE_USER}" -g "${SERVICE_USER}" ${INSTALL_ROOT}/rpms
+	install -d -m 755 -o "${SERVICE_USER}" -g "${SERVICE_USER}" ${INSTALL_ROOT}/rpms ${SERVICE_PATH}/out
 	./check-version-consistency.sh
 	make -s -f rpmbuild/VERSION.mk print-evr > ${SERVICE_PATH}/.package-evr
 

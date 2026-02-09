@@ -1,6 +1,7 @@
 # DEPLOYMENT
 
-デプロイスクリプト（`scripts/deploy-service.sh`）の仕様メモ。トップの `Makefile` から `make deploy` を叩くと `SERVICES` に列挙された各サービス（`nginx_rp`, `ssl_update`, `security_package` など）で順に、各サービスのディレクトリをカレントとして `make deploy` が実行される。
+デプロイスクリプト（`scripts/deploy-service.sh`）の仕様メモ。トップの `Makefile` から `make deploy` を叩くと、まず `stop` 依存で `SERVICES` に列挙された全サービスの停止を先に実行し、その後に `SERVICES` 順で各サービスの `make deploy` が実行される。
+この停止先行は、`trilium` の websocket セッションが残った状態で `nginx_rp` を停止すると graceful shutdown がタイムアウトしやすい問題を避けるためです。`trilium` origin を先に停止して websocket セッションを終了させてから `nginx_rp` を停止することで、停止待ち時間を短縮します。
 
 ## 前提・ツール
 - rootless Podman 前提。nginx_rp はコンテナを `-p 8443:443` で待受させ、443/tcp → 8443/tcp は systemd socket activation + systemd-socket-proxyd で転送。
@@ -13,6 +14,9 @@
 - 環境差異やオーバーライドは考慮不要。ロールバックは git でタグ/コミットを指定して再デプロイする。
 
 ## 環境変数
+### サービス固有変数
+- サービス固有の make 変数（例: `TRILIUM_PORT`, `DBFILE_DIR` など）は各サービスの `Makefile` で定義して `export` します。ルート `Makefile` では定義しません。
+
 ### ルート `Makefile` から子 `make` に引き渡す環境変数
 - `INSTALL_ROOT`
 - `NFS_ROOT`
