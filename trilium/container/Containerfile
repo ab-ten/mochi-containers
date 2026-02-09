@@ -4,7 +4,8 @@ USER root
 
 RUN apk add --no-cache tzdata
 
-ENV TZ=Asia/Tokyo
+ARG TZ=Asia/Tokyo
+ENV TZ=${TZ}
 
 RUN ln -sf "/usr/share/zoneinfo/${TZ}" /etc/localtime; \
     echo "${TZ}" > /etc/timezone

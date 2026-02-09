@@ -8,3 +8,5 @@ Makefile.local
 /denycheck.awk
 /.codex/
 /codex.sh
+/*/container/container-build.sh
+/*/container.*/container-build.sh

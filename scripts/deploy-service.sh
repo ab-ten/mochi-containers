@@ -3,7 +3,9 @@
 set -euo pipefail
 
 START_DIR=$PWD
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+# SCRIPT_DIR や mk/ は先に prepare-common で INSTALL_ROOT 下に rsync している。
+# （このリポジトリのディレクトリがサービスユーザーから読めるとは限らないので world readable にしている）
+SCRIPT_DIR="${INSTALL_ROOT}/scripts"
 REPLACE_SCRIPT="${SCRIPT_DIR}/replace-deploy-vars.sh"
 STOP_ONLY=No
 
@@ -281,6 +283,7 @@ shopt -s nullglob
 container_dirs=("${SERVICE_PATH}"/container "${SERVICE_PATH}"/container.*)
 shopt -u nullglob
 built_any=No
+default_build_script="${SCRIPT_DIR}/container-build-common.sh"
 for dir in "${container_dirs[@]}"; do
   [ -d "${dir}" ] || continue
   base="$(basename "${dir}")"
@@ -289,8 +292,21 @@ for dir in "${container_dirs[@]}"; do
   else
     image="localhost/${SERVICE_NAME}-${base#container.}:dev"
   fi
-  info "podman build: ${image} (${dir})"
-  run_user podman build -t "${image}" "${dir}"
+  build_env=(
+    "CONTAINER_IMAGE=${image}"
+    "CONTAINER_DIR=${dir}"
+  )
+
+  build_script="${dir}/container-build.sh"
+  if [ -x "${build_script}" ]; then
+    info "container-build.sh を実行: ${image} (${dir})"
+    run_user env "${build_env[@]}" "${build_script}"
+  elif [ -f "${build_script}" ]; then
+    err "container-build.sh が実行不可です。実行権限を付与してください: ${build_script}"
+  else
+    info "共通ビルドスクリプトを実行: ${image} (${dir})"
+    run_user env "${build_env[@]}" "${default_build_script}"
+  fi
   built_any=Yes
 done
 if [ "${built_any}" = "No" ]; then

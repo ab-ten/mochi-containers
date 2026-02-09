@@ -6,6 +6,7 @@
 ## 前提・ツール
 - rootless Podman 前提。nginx_rp はコンテナを `-p 8443:443` で待受させ、443/tcp → 8443/tcp は systemd socket activation + systemd-socket-proxyd で転送。
 - rootless で動かす systemd user unit と quadlet (`*.service` / `*.socket` / `*.container` / `*.timer` など) は、リポジトリ上では `<service>/home/.config/containers/systemd/`（Quadlet 系）と `<service>/home/.config/systemd/user/`（timer/service 系）に置き、デプロイ先では `/home/<service>/.config/containers/systemd/` と `/home/<service>/.config/systemd/user/` に配置する。root 権限が要る system unit は `/etc/systemd/system/` 直下に `<SERVICE_PREFIX>-<service>-<name>.service` 形式で置く（ディレクトリは掘らない）。
+- 共通処理に使う `mk/` と `scripts/` は、各サービスの deploy/stop の直前に `prepare-common` で `${INSTALL_ROOT}/` へ `rsync` 同期する。`deploy-service.sh` 内の補助スクリプト参照は `${INSTALL_ROOT}/scripts` を基準にする。
 - systemd drop-in は `<service>/dropins/systemd/` に定義する。配布元（origin）は `user/containers/<target>/...`（quadlet 用）、`user/systemd/<target>/...`（user unit 用）、`root/<target>/...`（root unit 用）に `*.d/*.conf` を置き、デプロイ時に target に収集される（自サービス向けも同様）。
 - `user-*.conf` はユーザーカスタマイズ用として `.gitignore` に登録済み。drop-in は必ず全削除で上書きされるため、カスタマイズしたい場合は `<service>/dropins/systemd/` 配下に `user-*.conf` として置いてデプロイで反映する。
 - 配置ルートは `INSTALL_ROOT`（例: `/srv/project/`）。各サービスはその直下に `<service>` ディレクトリを持ち、所有者は `<service>:<service>`。サービスユーザーのホームディレクトリは OS 既定の `/home/<service>` を使う（Podman ストレージが OS の変更に追従できるよう `/srv` 配下にホームを置かない）。
@@ -67,10 +68,10 @@
    - root unit は stop/disable 後に `/etc/systemd/system/<SERVICE_PREFIX>-<service>-*` を一括削除してクリーンにする。
    - `deploy-service.sh stop` の場合は停止のみで終了する。
 2) **配置ディレクトリ準備**: `install -d -o <service> -g <service> -m 0750` で `INSTALL_ROOT/<service>`、`/home/<service>`、`/home/<service>/.config/containers/systemd`、`/home/<service>/.config/systemd/user` を作成。
-3) **ソース配置 + 置換**: リポジトリのサービスディレクトリを `rsync -a --delete --exclude '.git' --exclude '*.swp' --exclude '*~' ./ INSTALL_ROOT/<service>/` へ、ホーム配下 (`home/`) があれば `/home/<service>/` に `rsync -a --delete --exclude '.cache' --exclude '.local' --exclude '*~'` で同期。`chmod 750` した後、`scripts/replace-deploy-vars.sh` で user unit の `@@ROOT_UNIT_PREFIX@@` / `@@SERVICE_PATH@@` / `@@INSTALL_ROOT@@` / `@@CERT_DOMAIN@@` などを実値に置換する（`CERT_DOMAIN` は置換処理が走る場合は実質必須、`REPLACE_ADD_VAR` で追加変数も置換対象にできる）。
-   - rsync 後に `dropins/systemd/` 配下の `*.conf` に対して `replace-deploy-vars.sh` を適用する（配布元の置換）。
-   - `/home/<service>/.config/containers/systemd/` と `/home/<service>/.config/systemd/user/` の unit ファイルに `replace-deploy-vars.sh` を適用する（`.d/*.conf` を含む）。
-   - 続けて `scripts/collect-systemd-dropins.sh` が `SERVICES` に含まれる origin から drop-in を収集し、target の user/root unit に配置する。自サービスも含めて収集するため、ユーザーカスタマイズ drop-in も反映される。drop-in は配布元で置換済みの前提で、収集側では置換しない。配置元の `dropins/systemd/` 構成や並び順の注意は `docs/collect-systemd-dropins.md` に整理。
+3) **ソース配置 + 置換**: リポジトリのサービスディレクトリを `rsync -a --delete --exclude '.git' --exclude '*.swp' --exclude '*~' ./ INSTALL_ROOT/<service>/` へ、ホーム配下 (`home/`) があれば `/home/<service>/` に `rsync -a --delete --exclude '.cache' --exclude '.local' --exclude '*~'` で同期。`chmod 750` した後、`${INSTALL_ROOT}/scripts/replace-deploy-vars.sh` で user unit の `@@ROOT_UNIT_PREFIX@@` / `@@SERVICE_PATH@@` / `@@INSTALL_ROOT@@` / `@@CERT_DOMAIN@@` などを実値に置換する（`CERT_DOMAIN` は置換処理が走る場合は実質必須、`REPLACE_ADD_VAR` で追加変数も置換対象にできる）。
+   - rsync 後に `dropins/systemd/` 配下の `*.conf` に対して `${INSTALL_ROOT}/scripts/replace-deploy-vars.sh` を適用する（配布元の置換）。
+   - `/home/<service>/.config/containers/systemd/` と `/home/<service>/.config/systemd/user/` の unit ファイルに `${INSTALL_ROOT}/scripts/replace-deploy-vars.sh` を適用する（`.d/*.conf` を含む）。
+   - 続けて `${INSTALL_ROOT}/scripts/collect-systemd-dropins.sh` が `SERVICES` に含まれる origin から drop-in を収集し、target の user/root unit に配置する。自サービスも含めて収集するため、ユーザーカスタマイズ drop-in も反映される。drop-in は配布元で置換済みの前提で、収集側では置換しない。配置元の `dropins/systemd/` 構成や並び順の注意は `docs/collect-systemd-dropins.md` に整理。
 4) **所有権統一**: `chown -R <service>:<service> INSTALL_ROOT/<service> /home/<service>`。
 5) **linger 有効化**: `loginctl enable-linger <service>`。
 6) **pre-build-user / pre-build-root**: Makefile にターゲットがある場合のみ実行。user 側は `INSTALL_ROOT` / `SERVICE_PATH` を環境で渡してサービスユーザー権限、root 側はそのまま。

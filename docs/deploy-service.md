@@ -5,6 +5,7 @@
 ## ゴールと前提
 - 役割: `mk/services.mk` の `deploy` ターゲット経由でサービスごとに rsync デプロイとビルドを行い、systemd (--user / root) を最新化する。
 - 呼び出し元: ルート `Makefile` の `make deploy` は `stop` 依存を持ち、全サービス停止を先に実行した後で `sudo ... make -C <service> deploy` を順次呼び出す。`cwd` はサービスディレクトリ（例: `nginx_rp/`）。この直前に `scripts/pre-deploy-check.sh` が走って、ユーザーやディレクトリの前提を担保済み。
+- 共通スクリプト参照: `deploy-service.sh` は `SCRIPT_DIR=${INSTALL_ROOT}/scripts` を参照し、`replace-deploy-vars.sh` / `collect-systemd-dropins.sh` / `container-build-common.sh` を同ディレクトリから実行する。`prepare-common` が事前に `mk/` と `scripts/` を `${INSTALL_ROOT}/` へ同期している前提。
 - rootless Podman 前提。systemd user unit / quadlet はリポジトリ上では `<service>/home/.config/containers/systemd/` に集約し、デプロイ先では `/home/<service>/.config/containers/systemd/` に配置する（nginx_rp もこの構成）。
 
 ## 参照するディレクトリ構造（例: `nginx_rp/`）
@@ -52,9 +53,9 @@
    - ワークツリー → `${SERVICE_PATH}/` へ `rsync -a --delete --exclude '.git' --exclude '*.swp' --exclude '*~' ./ "${SERVICE_PATH}/"`。
    - `nginx_rp` の `${SERVICE_PATH}/container/conf/` はこの `rsync --delete` で毎回リポジトリ状態へリセットされるため、前回デプロイ時の収集結果は引き継がれません。
    - user unit / quadlet / timer → `/home/${SERVICE_USER}/` へ `rsync -a --delete --exclude '.cache' --exclude '.local' --exclude '*~' "./home/" "/home/${SERVICE_USER}/"`（`.config/containers/systemd/` と `.config/systemd/user/` をまとめて同期。ホームはデプロイ先で直接管理する）。
-   - `dropins/systemd/` 配下の `*.conf` に `scripts/replace-deploy-vars.sh` を適用し、配布元の drop-in を先に置換する。
-   - `scripts/replace-deploy-vars.sh` を `/home/${SERVICE_USER}/.config/containers/systemd/` と `/home/${SERVICE_USER}/.config/systemd/user/` 配下の unit ファイル全て（`.d/*.conf` も含む）に実行し、`@@ROOT_UNIT_PREFIX@@` / `@@SERVICE_PATH@@` / `@@INSTALL_ROOT@@` / `@@CERT_DOMAIN@@` などを置換する（置換後に `chown` で権限を整える）。
-   - `scripts/collect-systemd-dropins.sh` で `SERVICES` に含まれる origin サービスの `dropins/systemd/` を収集し、target の user/root unit に drop-in を追加する（drop-in ファイルは `mochi-dropin-*.conf` に統一して、デプロイ時に古い drop-in を掃除する）。自サービスも対象に含める。収集済み drop-in は配布元で置換済みの前提で、収集側では置換しない。
+   - `${INSTALL_ROOT}/scripts/replace-deploy-vars.sh` を `dropins/systemd/` 配下の `*.conf` に適用し、配布元の drop-in を先に置換する。
+   - `${INSTALL_ROOT}/scripts/replace-deploy-vars.sh` を `/home/${SERVICE_USER}/.config/containers/systemd/` と `/home/${SERVICE_USER}/.config/systemd/user/` 配下の unit ファイル全て（`.d/*.conf` も含む）に実行し、`@@ROOT_UNIT_PREFIX@@` / `@@SERVICE_PATH@@` / `@@INSTALL_ROOT@@` / `@@CERT_DOMAIN@@` などを置換する（置換後に `chown` で権限を整える）。
+   - `${INSTALL_ROOT}/scripts/collect-systemd-dropins.sh` で `SERVICES` に含まれる origin サービスの `dropins/systemd/` を収集し、target の user/root unit に drop-in を追加する（drop-in ファイルは `mochi-dropin-*.conf` に統一して、デプロイ時に古い drop-in を掃除する）。自サービスも対象に含める。収集済み drop-in は配布元で置換済みの前提で、収集側では置換しない。
    - 配置後に `chown -R ${SERVICE_USER}:${SERVICE_USER} "${SERVICE_PATH}" "/home/${SERVICE_USER}"` で所有者を揃える。
    - ディレクトリパーミッションは `${SERVICE_PATH}` / `/home/${SERVICE_USER}` 共に `chmod 750` で締める。
 7. enable-linger 処理
@@ -66,8 +67,12 @@
 9. `replace-files-user` / `replace-files-root`:
    - `REPLACE_FILES_USER` / `REPLACE_FILES_ROOT` が空でなければ `make replace-files-user` / `make replace-files-root` を実行する。
 10. コンテナビルド:
-   - `container/` と `container.*` を検出し、存在するディレクトリごとに `podman build` する。
+   - `container/` と `container.*` を検出する。
    - `container/` は `localhost/${SERVICE_NAME}:dev`、`container.<suffix>` は `localhost/${SERVICE_NAME}-<suffix>:dev` のタグでビルドする。
+   - `container-build.sh` が当該ディレクトリに存在し、かつ実行可能な場合はそれを優先実行する。実行時には `CONTAINER_IMAGE` と `CONTAINER_DIR` を環境変数で渡す。
+   - `container-build.sh` が存在するが実行不可の場合はエラー終了する。共通ビルドへのフォールバックは行わない。
+   - サービス固有のカスタムビルドを利用する場合は、`container-build.sh.sample` を用意して利用者が `container-build.sh` を作成する運用を推奨する。
+   - `container-build.sh` がない場合は `${INSTALL_ROOT}/scripts/container-build-common.sh` を実行し、共通処理として `podman build -t "${CONTAINER_IMAGE}" "${CONTAINER_DIR}"` を行う。
 11. post-build フック:
    - `post-build-user` / `post-build-root` があれば pre-build 同様に実行。`post-build-user` は `sudo -u ${SERVICE_USER} INSTALL_ROOT=... NFS_ROOT=... SERVICE_PATH=... make -C ${SERVICE_PATH} post-build-user` で呼ばれる。
    - nginx 系なら `post-build-user` で `podman run --rm localhost/${SERVICE_NAME}:dev nginx -t` で構文チェックを行うことが期待される。
