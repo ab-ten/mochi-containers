@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+# Trilium のサーバーログなどを UTC で記録したい場合
+podman build -t "${CONTAINER_IMAGE}" --build-arg TZ="UTC" "${CONTAINER_DIR}"

@@ -282,7 +282,6 @@ container_dirs=("${SERVICE_PATH}"/container "${SERVICE_PATH}"/container.*)
 shopt -u nullglob
 built_any=No
 default_build_script="${INSTALL_ROOT}/scripts/container-build-common.sh"
-service_var_prefix="$(echo "${SERVICE_NAME}" | tr '[:lower:]' '[:upper:]')_"
 for dir in "${container_dirs[@]}"; do
   [ -d "${dir}" ] || continue
   base="$(basename "${dir}")"
@@ -295,9 +294,6 @@ for dir in "${container_dirs[@]}"; do
     "CONTAINER_IMAGE=${image}"
     "CONTAINER_DIR=${dir}"
   )
-  while IFS= read -r env_name; do
-    build_env+=("${env_name}=${!env_name}")
-  done < <(compgen -v | grep -E "^${service_var_prefix}[A-Z0-9_]*$" | sort -u || true)
 
   build_script="${dir}/container-build.sh"
   if [ -x "${build_script}" ]; then
