@@ -66,8 +66,12 @@
 9. `replace-files-user` / `replace-files-root`:
    - `REPLACE_FILES_USER` / `REPLACE_FILES_ROOT` が空でなければ `make replace-files-user` / `make replace-files-root` を実行する。
 10. コンテナビルド:
-   - `container/` と `container.*` を検出し、存在するディレクトリごとに `podman build` する。
+   - `container/` と `container.*` を検出する。
    - `container/` は `localhost/${SERVICE_NAME}:dev`、`container.<suffix>` は `localhost/${SERVICE_NAME}-<suffix>:dev` のタグでビルドする。
+   - `container-build.sh` が当該ディレクトリに存在し、かつ実行可能な場合はそれを優先実行する。実行時には `CONTAINER_IMAGE` と `CONTAINER_DIR` を環境変数で渡す。
+   - `container-build.sh` が存在するが実行不可の場合はエラー終了する。共通ビルドへのフォールバックは行わない。
+   - サービス固有のカスタムビルドを利用する場合は、`container-build.sh.sample` を用意して利用者が `container-build.sh` を作成する運用を推奨する。
+   - `container-build.sh` がない場合は `scripts/container-build-common.sh` を実行し、共通処理として `podman build -t "${CONTAINER_IMAGE}" "${CONTAINER_DIR}"` を行う。
 11. post-build フック:
    - `post-build-user` / `post-build-root` があれば pre-build 同様に実行。`post-build-user` は `sudo -u ${SERVICE_USER} INSTALL_ROOT=... NFS_ROOT=... SERVICE_PATH=... make -C ${SERVICE_PATH} post-build-user` で呼ばれる。
    - nginx 系なら `post-build-user` で `podman run --rm localhost/${SERVICE_NAME}:dev nginx -t` で構文チェックを行うことが期待される。
