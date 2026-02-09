@@ -299,6 +299,8 @@ for dir in "${container_dirs[@]}"; do
   if [ -x "${build_script}" ]; then
     info "container-build.sh を実行: ${image} (${dir})"
     run_user env "${build_env[@]}" "${build_script}"
+  elif [ -f "${build_script}" ]; then
+    err "container-build.sh が実行不可です。実行権限を付与してください: ${build_script}"
   else
     info "共通ビルドスクリプトを実行: ${image} (${dir})"
     run_user env "${build_env[@]}" "${default_build_script}"
