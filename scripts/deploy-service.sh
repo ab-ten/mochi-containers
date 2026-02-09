@@ -281,6 +281,8 @@ shopt -s nullglob
 container_dirs=("${SERVICE_PATH}"/container "${SERVICE_PATH}"/container.*)
 shopt -u nullglob
 built_any=No
+default_build_script="${INSTALL_ROOT}/scripts/container-build-common.sh"
+service_var_prefix="$(echo "${SERVICE_NAME}" | tr '[:lower:]' '[:upper:]')_"
 for dir in "${container_dirs[@]}"; do
   [ -d "${dir}" ] || continue
   base="$(basename "${dir}")"
@@ -289,8 +291,22 @@ for dir in "${container_dirs[@]}"; do
   else
     image="localhost/${SERVICE_NAME}-${base#container.}:dev"
   fi
-  info "podman build: ${image} (${dir})"
-  run_user podman build -t "${image}" "${dir}"
+  build_env=(
+    "CONTAINER_IMAGE=${image}"
+    "CONTAINER_DIR=${dir}"
+  )
+  while IFS= read -r env_name; do
+    build_env+=("${env_name}=${!env_name}")
+  done < <(compgen -v | grep -E "^${service_var_prefix}[A-Z0-9_]*$" | sort -u || true)
+
+  build_script="${dir}/container-build.sh"
+  if [ -x "${build_script}" ]; then
+    info "container-build.sh を実行: ${image} (${dir})"
+    run_user env "${build_env[@]}" "${build_script}"
+  else
+    info "共通ビルドスクリプトを実行: ${image} (${dir})"
+    run_user env "${build_env[@]}" "${default_build_script}"
+  fi
   built_any=Yes
 done
 if [ "${built_any}" = "No" ]; then
