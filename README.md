@@ -63,6 +63,7 @@ OpenSUSE MicroOS 上で **rootless Podman + systemd user unit** を使用し、*
 - 各サービスの設定はそれぞれの README に分離しています
   - `nginx_rp/README.md`
   - `ssl_update/README.md`
+  - `trilium/README.md`
   - `nextcloud/README.md`
   - `redmine/README.md`
   - `security_package/README.md`

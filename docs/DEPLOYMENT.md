@@ -48,6 +48,10 @@
 - unit/quadlet/drop-in で参照する場合は `@@VAR@@` 形式へ置換し、`scripts/replace-deploy-vars.sh` の `REPLACEMENT_VARS` に追加します。
 - 追加した変数は `docs/DEPLOYMENT.md` / `docs/pre-deploy-check.md` / `docs/deploy-service.md` の一覧へ反映し、関連するサービス README を更新します。
 
+## サービス追加時のドキュメント更新
+- 新しいサービスを `SERVICES` に追加した場合は、ルート `README.md` の「Services and Customization」に `<service>/README.md` を追記してください。
+- 同時に、追加したサービスの `README.md`（`<service>/README.md`）を作成または更新してください。
+
 ## デプロイ前チェック（サービスごと） `scripts/pre-deploy-check.sh`
 1) サービス側 `Makefile` を経由して `mk/services.mk` から `scripts/pre-deploy-check.sh` が呼び出される。通常、各サービス側 `Makefile` は全 make 変数を export する指定が行われており、SERVICE_NAME や SERVICE_USER などが適切に定義され環境変数として設定されている。
 2) `Makefile` に `pre-deploy-check-user` / `pre-deploy-check-root` があれば先に実行される。
