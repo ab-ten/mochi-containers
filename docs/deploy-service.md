@@ -5,7 +5,8 @@
 ## ゴールと前提
 - 役割: `mk/services.mk` の `deploy` ターゲット経由でサービスごとに rsync デプロイとビルドを行い、systemd (--user / root) を最新化する。
 - 呼び出し元: ルート `Makefile` の `make deploy` は `stop` 依存を持ち、全サービス停止を先に実行した後で `sudo ... make -C <service> deploy` を順次呼び出す。`cwd` はサービスディレクトリ（例: `nginx_rp/`）。この直前に `scripts/pre-deploy-check.sh` が走って、ユーザーやディレクトリの前提を担保済み。
-- 共通スクリプト参照: `deploy-service.sh` は `SCRIPT_DIR=${INSTALL_ROOT}/scripts` を参照し、`replace-deploy-vars.sh` / `collect-systemd-dropins.sh` / `container-build-common.sh` を同ディレクトリから実行する。`prepare-common` が事前に `mk/` と `scripts/` を `${INSTALL_ROOT}/` へ同期している前提。
+- 共通スクリプト参照: `deploy-service.sh` は `SCRIPT_DIR=${INSTALL_ROOT}/scripts` を参照し、`replace-deploy-vars.sh` / `collect-systemd-dropins.sh` / `container-build.sh` を同ディレクトリから実行する。`prepare-common` が事前に `mk/` と `scripts/` を `${INSTALL_ROOT}/` へ同期している前提。
+- コンテナビルドの詳細仕様は `docs/container-build.md` を参照してください。
 - rootless Podman 前提。systemd user unit / quadlet はリポジトリ上では `<service>/home/.config/containers/systemd/` に集約し、デプロイ先では `/home/<service>/.config/containers/systemd/` に配置する（nginx_rp もこの構成）。
 
 ## 参照するディレクトリ構造（例: `nginx_rp/`）
@@ -69,10 +70,10 @@
 10. コンテナビルド:
    - `container/` と `container.*` を検出する。
    - `container/` は `localhost/${SERVICE_NAME}:dev`、`container.<suffix>` は `localhost/${SERVICE_NAME}-<suffix>:dev` のタグでビルドする。
-   - `container-build.sh` が当該ディレクトリに存在し、かつ実行可能な場合はそれを優先実行する。実行時には `CONTAINER_IMAGE` と `CONTAINER_DIR` を環境変数で渡す。
-   - `container-build.sh` が存在するが実行不可の場合はエラー終了する。共通ビルドへのフォールバックは行わない。
-   - サービス固有のカスタムビルドを利用する場合は、`container-build.sh.sample` を用意して利用者が `container-build.sh` を作成する運用を推奨する。
-   - `container-build.sh` がない場合は `${INSTALL_ROOT}/scripts/container-build-common.sh` を実行し、共通処理として `podman build -t "${CONTAINER_IMAGE}" "${CONTAINER_DIR}"` を行う。
+   - `deploy-service.sh` は `${INSTALL_ROOT}/scripts/container-build.sh` を実行する。実行時には `CONTAINER_IMAGE` と `CONTAINER_DIR` を環境変数で渡す。
+   - `container-build.sh` は当該ディレクトリの `custom-build.sh` を優先実行する。
+   - `custom-build.sh` が存在するが実行不可の場合はエラー終了する。共通ビルドへのフォールバックは行わない。
+   - `custom-build.sh` がない場合は共通処理として `podman build -t "${CONTAINER_IMAGE}" "${CONTAINER_DIR}"` を行う。
 11. post-build フック:
    - `post-build-user` / `post-build-root` があれば pre-build 同様に実行。`post-build-user` は `sudo -u ${SERVICE_USER} INSTALL_ROOT=... NFS_ROOT=... SERVICE_PATH=... make -C ${SERVICE_PATH} post-build-user` で呼ばれる。
    - nginx 系なら `post-build-user` で `podman run --rm localhost/${SERVICE_NAME}:dev nginx -t` で構文チェックを行うことが期待される。

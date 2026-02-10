@@ -18,7 +18,7 @@
 
 ## ディレクトリ・ボリューム構成
 - `container/Containerfile`: TriliumNext イメージのビルド定義
-- `container/container-build.sh.sample`: カスタムビルド用スクリプトのサンプル
+- `container/custom-build.sh.sample`: カスタムビルド用スクリプトのサンプル
 - `https_trilium.conf`: nginx vhost 設定（`replace-files-user` で置換）
 - `DBFILE_DIR`: `/home/node/trilium-data` に bind mount
 - `home/.config/containers/systemd/trilium.container`: rootless quadlet 定義
@@ -44,4 +44,4 @@
 ## トラブルシュート / 注意点
 - `DBFILE_DIR` はローカルディスク上に作成されます。バックアップ転送は別途計画・運用してください。
 - SELinux 有効環境では bind mount に `:Z` を付与しています。
-- `container-build.sh` が未配置の場合は `scripts/container-build-common.sh` による共通ビルドが実行されます。タイムゾーンなどのビルド引数を変更する場合は、`container/container-build.sh.sample` を `container/container-build.sh` にコピーして実行権限を付与してください。
+- `custom-build.sh` が未配置の場合は `scripts/container-build.sh` による共通ビルドが実行されます。タイムゾーンなどのビルド引数を変更する場合は、`container/custom-build.sh.sample` を `container/custom-build.sh` にコピーして実行権限を付与してください。
