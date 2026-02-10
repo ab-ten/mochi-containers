@@ -61,6 +61,7 @@
 - root によるサービスは `/etc/systemd/system/<service>/` にインストールされ、rootless の --user サービスと quadlet は `/home/<service>/.config/containers/systemd/` にまとめてインストールする（home 配下必須）
 - pre-buid-user などのターゲットの存在は Makefile を "^pre-build-user:" などのパターンで grep してチェックできる。
 - drop-in 収集の詳細は `docs/collect-systemd-dropins.md` を参照。
+- コンテナビルドの詳細仕様は `docs/container-build.md` を参照。
 
 1) **既存サービス停止**:
    - `/home/<service>/.config/containers/systemd/` と `/home/<service>/.config/systemd/user/` にある `.service`/`.socket`/`.container`/`.timer`/`.path` を収集（配備済みファイル一覧をそのまま使う）。`/etc/systemd/system/` の `<SERVICE_PREFIX>-<service>-*` も同様に収集。停止順は `.timer` → `.socket` → `.path` → その他。
@@ -77,7 +78,7 @@
 6) **pre-build-user / pre-build-root**: Makefile にターゲットがある場合のみ実行。user 側は `INSTALL_ROOT` / `SERVICE_PATH` を環境で渡してサービスユーザー権限、root 側はそのまま。
    - `nginx_rp` の `pre-build-root` は `scripts/collect-nginx-conf.sh` で `SERVICES` に含まれる各サービスの `${INSTALL_ROOT}/<service>/http_<service>.conf` / `https_<service>.conf` を `nginx_rp/container/conf/` に集約し、続けて `scripts/generate-index-html.sh` で `nginx_rp/container/html/index.html` を再生成する。`SERVICES` の並びは `ssl_update` → 各サービス → `nginx_rp` の順にしておく。
 7) **replace-files-user / replace-files-root**: `REPLACE_FILES_USER` / `REPLACE_FILES_ROOT` が空でなければ `make replace-files-user` / `make replace-files-root` を実行。
-8) **コンテナビルド**: `container/` と `container.*` ディレクトリを検出し、存在するディレクトリごとに `podman build` を実行する。
+8) **コンテナビルド**: `container/` と `container.*` ディレクトリを検出し、存在するディレクトリごとに `${INSTALL_ROOT}/scripts/container-build.sh` を実行する。`container-build.sh` は `custom-build.sh` があれば優先実行し、なければ共通処理として `podman build` を実行する。`custom-build.sh` が存在して実行不可な場合はエラー終了する。
 9) **post-build-user / post-build-root**: あれば pre-build と同様に実行。
 10) **systemd 配置**:
    - root unit: `INSTALL_ROOT/<service>/systemd/` のファイルを `/etc/systemd/system/<SERVICE_PREFIX>-<service>-<name>` にコピーし、`replace-deploy-vars.sh` でプレースホルダー置換。0644/root:root にして `systemctl daemon-reload`。
