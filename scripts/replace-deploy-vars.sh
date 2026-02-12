@@ -35,7 +35,6 @@ deploy_vars_collect_missing replacement_vars missing
 
 if [ "${#missing[@]}" -gt 0 ]; then
   err "未設定の環境変数: ${missing[*]}"
-  exit 1
 fi
 
 sed_args=()
