@@ -7,6 +7,7 @@ INSTALL_ROOT = /srv/project
 NFS_ROOT = /srv/nfs/containers
 SERVICE_PREFIX = mochi
 SECRETS_DIR = $(realpath ../secrets)
+SCRIPT_DIR=${INSTALL_ROOT}/scripts
 CERT_DOMAIN = example.com
 MAP_LOCAL_ADDRESS = 172.22.22.22
 

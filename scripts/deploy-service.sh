@@ -3,10 +3,13 @@
 set -euo pipefail
 
 START_DIR=$PWD
-# SCRIPT_DIR や mk/ は先に prepare-common で INSTALL_ROOT 下に rsync している。
-# （このリポジトリのディレクトリがサービスユーザーから読めるとは限らないので world readable にしている）
-SCRIPT_DIR="${INSTALL_ROOT}/scripts"
-REPLACE_SCRIPT="${SCRIPT_DIR}/replace-deploy-vars.sh"
+if [ -z "${INSTALL_ROOT-}" ]; then
+  echo "deploy-service: 必須環境変数が未設定: INSTALL_ROOT" >&2
+  exit 1
+fi
+SELF_SCRIPT_DIR="${INSTALL_ROOT%/}/scripts"
+# shellcheck source=deploy-vars.subr
+source "${SELF_SCRIPT_DIR}/deploy-vars.subr"
 STOP_ONLY=No
 
 if [ "$#" -ge 1 ] && [ "$1" = "stop" ]; then
@@ -49,18 +52,11 @@ run_user_systemctl_disable() {
 }
 
 run_user_make() {
+  local env_pairs=()
+  deploy_vars_build_env_pairs DEPLOY_REQUIRED_VARS env_pairs
   (
-    cd ${INSTALL_ROOT}
-    run_user env \
-      INSTALL_ROOT="${INSTALL_ROOT}" \
-      NFS_ROOT="${NFS_ROOT}" \
-      SERVICE_PATH="${SERVICE_PATH}" \
-      CERT_DOMAIN="${CERT_DOMAIN}" \
-      BASE_REPO_DIR="${BASE_REPO_DIR}" \
-      ROOT_UNIT_PREFIX="${ROOT_UNIT_PREFIX}" \
-      SERVICES="${SERVICES}" \
-      MAP_LOCAL_ADDRESS="${MAP_LOCAL_ADDRESS}" \
-      make "$@"
+    cd "${INSTALL_ROOT}"
+    run_user env "${env_pairs[@]}" make "$@"
   )
 }
 
@@ -143,21 +139,6 @@ user_unit_file_path() {
   fi
 }
 
-required_vars=(SERVICE_NAME SERVICE_USER SERVICE_PATH INSTALL_ROOT NFS_ROOT SERVICE_PREFIX SECRETS_DIR SERVICES)
-missing=()
-for var in "${required_vars[@]}"; do
-  if [ -z "${!var-}" ]; then
-    missing+=("${var}")
-  fi
-done
-if [ "${#missing[@]}" -ne 0 ]; then
-  err "必須環境変数が未設定: ${missing[*]}"
-fi
-
-export INSTALL_ROOT="${INSTALL_ROOT%/}"
-export NFS_ROOT="${NFS_ROOT%/}"
-export SERVICE_PATH="${SERVICE_PATH%/}"
-export EXPECTED_SERVICE_PATH="${INSTALL_ROOT}/${SERVICE_NAME}"
 if [ "${SERVICE_PATH}" != "${EXPECTED_SERVICE_PATH}" ]; then
   err "SERVICE_PATH が不正: 期待値=${EXPECTED_SERVICE_PATH}, 現在=${SERVICE_PATH}"
 fi
@@ -166,13 +147,7 @@ if [[ "${SERVICE_PREFIX}" =~ [[:space:]] ]] || [ -z "${SERVICE_PREFIX}" ]; then
 fi
 
 export SRC_DIR="$(pwd)"
-# ホームは OS 既定の /home/<user> を使用し、/srv 配下には置かない（Podman ストレージ前提の揺れを避ける）
-export SERVICE_HOME="/home/${SERVICE_USER}"
-export USER_UNIT_DIR="${SERVICE_HOME}/.config"
-export USER_CONTAINER_UNIT_DIR="${USER_UNIT_DIR}/containers/systemd"
-export USER_SYSTEMD_USER_DIR="${USER_UNIT_DIR}/systemd/user"
-export ROOT_UNIT_PREFIX="${SERVICE_PREFIX}-${SERVICE_NAME}-"
-export ROOT_UNIT_DEST="/etc/systemd/system"
+REPLACE_SCRIPT="${SCRIPT_DIR}/replace-deploy-vars.sh"
 
 info "uninstall 用の unit 一覧を取得"
 mapfile -t user_units_uninstall < <(collect_user_units "${USER_CONTAINER_UNIT_DIR}" "${USER_SYSTEMD_USER_DIR}" || true)

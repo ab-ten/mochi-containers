@@ -1,0 +1,78 @@
+#!/usr/bin/env bash
+
+DEPLOY_REQUIRED_VARS=(
+  SERVICE_NAME
+  SERVICE_USER
+  SERVICE_PATH
+  INSTALL_ROOT
+  NFS_ROOT
+  SERVICES
+  CERT_DOMAIN
+  MAP_LOCAL_ADDRESS
+  SERVICE_HOME
+  SERVICE_PREFIX
+  SECRETS_DIR
+  ROOT_UNIT_PREFIX
+  ROOT_UNIT_DEST
+  BASE_REPO_DIR
+  NFS_GROUP_CHECK
+  SCRIPT_DIR
+)
+
+deploy_vars_collect_missing() {
+  local -n vars_ref=$1
+  local -n missing_ref=$2
+  local var
+
+  missing_ref=()
+  for var in "${vars_ref[@]}"; do
+    if [ -z "${!var-}" ]; then
+      missing_ref+=("${var}")
+    fi
+  done
+}
+
+deploy_vars_get_replacement_vars() {
+  local -n vars_ref=$1
+  local extra_var
+
+  vars_ref=("${DEPLOY_REQUIRED_VARS[@]}")
+  if [ -n "${REPLACE_ADD_VAR-}" ]; then
+    for extra_var in ${REPLACE_ADD_VAR}; do
+      vars_ref+=("${extra_var}")
+    done
+  fi
+}
+
+deploy_vars_build_env_pairs() {
+  local -n vars_ref=$1
+  local -n pairs_ref=$2
+  local var
+
+  pairs_ref=()
+  for var in "${vars_ref[@]}"; do
+    if [ -n "${!var-}" ]; then
+      pairs_ref+=("${var}=${!var}")
+    fi
+  done
+}
+
+export INSTALL_ROOT="${INSTALL_ROOT%/}"
+export NFS_ROOT="${NFS_ROOT%/}"
+export SERVICE_PATH="${SERVICE_PATH%/}"
+
+export EXPECTED_SERVICE_PATH="${INSTALL_ROOT}/${SERVICE_NAME}"
+export SERVICE_HOME="/home/${SERVICE_USER}"
+export USER_UNIT_DIR="${SERVICE_HOME}/.config"
+export USER_CONTAINER_UNIT_DIR="${USER_UNIT_DIR}/containers/systemd"
+export USER_SYSTEMD_USER_DIR="${USER_UNIT_DIR}/systemd/user"
+export ROOT_UNIT_PREFIX="${SERVICE_PREFIX}-${SERVICE_NAME}-"
+export ROOT_UNIT_DEST="/etc/systemd/system"
+export NFS_GROUP_CHECK="${NFS_GROUP_CHECK:-Yes}"
+
+missing=()
+deploy_vars_collect_missing DEPLOY_REQUIRED_VARS missing
+if [ "${#missing[@]}" -ne 0 ]; then
+  echo "必須環境変数が未設定: ${missing[*]}" >&2
+  exit 1
+fi

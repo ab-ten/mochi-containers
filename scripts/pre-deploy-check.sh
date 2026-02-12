@@ -3,6 +3,8 @@
 set -euo pipefail
 
 START_DIR=$PWD
+# shellcheck source=deploy-vars.subr
+source "${SCRIPT_DIR}/deploy-vars.subr"
 
 info() {
   echo "pre-deploy-check: $*"
@@ -28,25 +30,6 @@ if grep -q '^pre-deploy-check-root:' Makefile; then
 fi
 
 
-NFS_GROUP="svc_nfs_clients"
-
-required_vars=(SERVICE_NAME SERVICE_USER SERVICE_PATH INSTALL_ROOT NFS_ROOT SERVICES CERT_DOMAIN MAP_LOCAL_ADDRESS)
-missing=()
-for var in "${required_vars[@]}"; do
-  if [ -z "${!var-}" ]; then
-    missing+=("${var}")
-  fi
-done
-if [ "${#missing[@]}" -ne 0 ]; then
-  err "必須環境変数が未設定: ${missing[*]}"
-fi
-
-INSTALL_ROOT="${INSTALL_ROOT%/}"
-NFS_ROOT="${NFS_ROOT%/}"
-EXPECTED_SERVICE_PATH="${INSTALL_ROOT}/${SERVICE_NAME}"
-SERVICE_PATH="${SERVICE_PATH%/}"
-SERVICE_HOME="/home/${SERVICE_USER}"
-
 if [ "${SERVICE_PATH}" != "${EXPECTED_SERVICE_PATH}" ]; then
   err "SERVICE_PATH が不正: 期待値=${EXPECTED_SERVICE_PATH}, 現在=${SERVICE_PATH}"
 fi
@@ -66,10 +49,6 @@ service_gid="$(id -g "${SERVICE_USER}")"
 if [ X"${NFS_GROUP_CHECK:-Yes}" == X"No" ] ; then
   info "NFS group check: skipped."
 else
-#  if ! id -nG "${SERVICE_USER}" | tr ' ' '\n' | grep -Fx "${NFS_GROUP}" >/dev/null; then
-#    err "SERVICE_USER が ${NFS_GROUP} グループに所属していない: ${SERVICE_USER}"
-#  fi
-
   NFS_DIR="${NFS_ROOT}/${SERVICE_NAME}"
   if [ ! -d "${NFS_DIR}" ]; then
     info "NFS ディレクトリを ${SERVICE_USER} 権限で作成: ${NFS_DIR}"
