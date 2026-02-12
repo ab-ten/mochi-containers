@@ -1,5 +1,4 @@
 # project-root/Makefile
-# sudo で root になれる一般ユーザーで make deploy する想定
 
 export
 SERVICES = ssl_update nextcloud redmine trilium nginx_rp security_package
@@ -15,6 +14,11 @@ MAP_LOCAL_ADDRESS = 172.22.22.22
 
 BASE_REPO_DIR = ${CURDIR}
 
+ifeq ($(shell id -u),0)
+else
+$(error この Makefile は root で実行してください。例: sudo make deploy)
+endif
+
 
 .PHONY: all deploy stop $(SERVICES) prepare-common intall-pre-commit-hook
 
@@ -26,33 +30,16 @@ deploy: stop $(SERVICES:%=%-deploy)
 stop: $(SERVICES:%=%-stop)
 
 prepare-common:
-	@sudo rsync -rtp --chmod=D775 --delete --exclude '*~' ./mk ./scripts ${INSTALL_ROOT}/
+	@rsync -rtp --chmod=D775 --delete --exclude '*~' ./mk ./scripts ${INSTALL_ROOT}/
 
 # 下位呼び出し: nginx-deploy, lego-deploy, ...
 %-deploy: prepare-common
-	@sudo   INSTALL_ROOT="${INSTALL_ROOT}" \
-		NFS_ROOT="${NFS_ROOT}" \
-		SERVICE_PATH="${INSTALL_ROOT}/$*" \
-		SERVICE_PREFIX="${SERVICE_PREFIX}" \
-		SECRETS_DIR="${SECRETS_DIR}" \
-		CERT_DOMAIN="${CERT_DOMAIN}" \
-		BASE_REPO_DIR="${BASE_REPO_DIR}" \
-		SERVICES="${SERVICES}" \
-		MAP_LOCAL_ADDRESS="${MAP_LOCAL_ADDRESS}" \
-		$(MAKE) -C "$*" deploy
+	@SERVICE_PATH="${INSTALL_ROOT}/$*" $(MAKE) -C "$*" deploy
 
 %-stop: prepare-common
-	@sudo   INSTALL_ROOT="${INSTALL_ROOT}" \
-		NFS_ROOT="${NFS_ROOT}" \
-		SERVICE_PATH="${INSTALL_ROOT}/$*" \
-		SERVICE_PREFIX="${SERVICE_PREFIX}" \
-		SECRETS_DIR="${SECRETS_DIR}" \
-		CERT_DOMAIN="${CERT_DOMAIN}" \
-		BASE_REPO_DIR="${BASE_REPO_DIR}" \
-		SERVICES="${SERVICES}" \
-		MAP_LOCAL_ADDRESS="${MAP_LOCAL_ADDRESS}" \
-		$(MAKE) -C "$*" stop
+	@SERVICE_PATH="${INSTALL_ROOT}/$*" $(MAKE) -C "$*" stop
 
+#
 intall-pre-commit-hook: .git/hooks/pre-commit
 .git/hooks/pre-commit: pre-commit.sh
 	ln -sf ../../pre-commit.sh .git/hooks/pre-commit
