@@ -8,11 +8,13 @@
 
 ## 呼び出し前提
 - 入口は各サービスの `Makefile` → `mk/services.mk` の `deploy` ターゲットから。`../scripts/pre-deploy-check.sh` として呼ばれる。
-- ルートの `Makefile` からは `sudo INSTALL_ROOT=... SERVICE_PATH=... make -C <service> deploy` で実行される想定。ユーザー/ディレクトリ操作があるため root 前提で実装する。
+- ルートの `Makefile` からは `make -C <service> deploy` で実行される想定（ルート Makefile 自体が root 実行を必須化）。ユーザー/ディレクトリ操作があるため root 前提で実装する。
 - カレントディレクトリはサービスディレクトリ（例: `nginx_rp/`）。`SERVICE_NAME` と `SERVICE_USER` は一致している前提。
 - サービス固有の make 変数（例: `TRILIUM_PORT`, `DBFILE_DIR` など）は各サービスの `Makefile` で定義して `export` する。
 
 ## 必須環境変数
+- 変数名リストは `scripts/deploy-vars.subr` の `DEPLOY_REQUIRED_VARS` で一元管理する。
+- 変数定義・正規化・必須チェックの詳細仕様は `docs/deploy-vars.subr.md` を参照する。
 - `SERVICE_NAME` … サービス名（ディレクトリ名と一致）
 - `SERVICE_USER` … サービス実行ユーザー名
 - `SERVICE_PATH` … `/srv/project/<service>` を指す絶対パス

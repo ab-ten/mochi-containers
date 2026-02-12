@@ -80,6 +80,7 @@ sudo systemctl -M "<service_user>@.host" --user status <unit>
 - 各サービスの `README.md`
 - `docs/DEPLOYMENT.md`
 - `docs/deploy-service.md`
+- `docs/deploy-vars.subr.md`
 - `docs/container-build.md`
 - `docs/pre-deploy-check.md`
 - `docs/collect-systemd-dropins.md`

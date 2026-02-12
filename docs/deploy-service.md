@@ -4,7 +4,7 @@
 
 ## ゴールと前提
 - 役割: `mk/services.mk` の `deploy` ターゲット経由でサービスごとに rsync デプロイとビルドを行い、systemd (--user / root) を最新化する。
-- 呼び出し元: ルート `Makefile` の `make deploy` は `stop` 依存を持ち、全サービス停止を先に実行した後で `sudo ... make -C <service> deploy` を順次呼び出す。`cwd` はサービスディレクトリ（例: `nginx_rp/`）。この直前に `scripts/pre-deploy-check.sh` が走って、ユーザーやディレクトリの前提を担保済み。
+- 呼び出し元: ルート `Makefile` の `make deploy` は `stop` 依存を持ち、全サービス停止を先に実行した後で `make -C <service> deploy` を順次呼び出す（ルート Makefile 自体が root 実行を必須化）。`cwd` はサービスディレクトリ（例: `nginx_rp/`）。この直前に `scripts/pre-deploy-check.sh` が走って、ユーザーやディレクトリの前提を担保済み。
 - 共通スクリプト参照: `deploy-service.sh` は `SCRIPT_DIR=${INSTALL_ROOT}/scripts` を参照し、`replace-deploy-vars.sh` / `collect-systemd-dropins.sh` / `container-build.sh` を同ディレクトリから実行する。`prepare-common` が事前に `mk/` と `scripts/` を `${INSTALL_ROOT}/` へ同期している前提。
 - コンテナビルドの詳細仕様は `docs/container-build.md` を参照してください。
 - rootless Podman 前提。systemd user unit / quadlet はリポジトリ上では `<service>/home/.config/containers/systemd/` に集約し、デプロイ先では `/home/<service>/.config/containers/systemd/` に配置する（nginx_rp もこの構成）。
@@ -22,6 +22,8 @@
 - サービス固有の make 変数（例: `TRILIUM_PORT`, `DBFILE_DIR` など）は各サービスの `Makefile` で定義して `export` し、ルート `Makefile` では定義しません。
 
 ## 必須環境変数
+- 変数名リストは `scripts/deploy-vars.subr` の `DEPLOY_REQUIRED_VARS` で一元管理する。
+- 一元管理の詳細仕様は `docs/deploy-vars.subr.md` を参照する。
 - `SERVICE_NAME`, `SERVICE_USER` … サービス名と実行ユーザー（同一前提）です。
 - `SERVICE_PATH` … 配置先 `/srv/project/<service>` の絶対パスです。`INSTALL_ROOT` と合わせて正規化チェックします。
 - `INSTALL_ROOT` … `/srv/project/` のようなルートです（末尾 `/` は削って扱います）。
@@ -36,6 +38,8 @@
 - `BASE_REPO_DIR` … `pre-build` / `post-build` の Makefile 呼び出しに渡す値。
 - `REPLACE_FILES_USER` / `REPLACE_FILES_ROOT` … 値が空でなければ `replace-files-user` / `replace-files-root` ターゲットを実行するトリガ。
 - `REPLACE_ADD_VAR` … `replace-deploy-vars.sh` の置換対象変数を追加する（例: `REPLACE_ADD_VAR=DEPLOY_ENV` で `@@DEPLOY_ENV@@` を置換）。
+- `run_user_make` に渡す環境変数リストは `scripts/deploy-vars.subr` の `DEPLOY_REQUIRED_VARS` で一元管理する。
+- 必須変数・派生変数の更新手順は `docs/deploy-vars.subr.md` に従う。
 
 ## 期待する依存コマンド
 `rsync`, `sudo`, `systemctl`（system / --user 両方）, `podman`, `install`, `grep`, `make`。
@@ -131,7 +135,8 @@ user unit / quadlet / root unit のテンプレート置換は `scripts/replace-
 - `@@<任意の追加変数>@@` … `REPLACE_ADD_VAR` によって追加された変数名が置換対象になる（例: `REPLACE_ADD_VAR=DEPLOY_ENV` なら `@@DEPLOY_ENV@@` が置換される）
 
 ### 拡張方法
-将来的にプレースホルダーを追加する場合は、`scripts/replace-deploy-vars.sh` の `REPLACEMENT_VARS` に変数名を足す。`@@NEW_VAR@@` を unit ファイルに書き、環境変数 `NEW_VAR` を `deploy-service.sh` から引き渡せば自動で置換される。
+将来的にプレースホルダーを追加する場合は、`scripts/deploy-vars.subr` の `DEPLOY_REQUIRED_VARS` に変数名を足す。`@@NEW_VAR@@` を unit ファイルに書き、NEW_VAR 環境変数が設定されていれば自動で置換される。
+追加時の同期対象と確認観点は `docs/deploy-vars.subr.md` を参照する。
 
 ### 注意点
 - プレースホルダーは `@@VARIABLE@@` 形式を推奨（識別しやすく、誤置換を防ぐため）
@@ -140,6 +145,6 @@ user unit / quadlet / root unit のテンプレート置換は `scripts/replace-
   - drop-in も同様に `@@...@@` を置換する。origin 配布の drop-in は `deploy-service.sh` が `dropins/systemd/` に対して `replace-deploy-vars.sh` を実行した後に `collect-systemd-dropins.sh` で配置する（収集側では置換しない）。
 
 ## 動作確認の目安
-- 正常系: `sudo INSTALL_ROOT=/srv/project/ NFS_ROOT=/srv/nfs/containers SERVICE_PATH=/srv/project/nginx_rp make -C nginx_rp deploy` で rsync → build → daemon-reload → restart まで通ること。
+- 正常系: sudo make deploy が完走する事。
 - 異常系: 必須変数欠け、rsync 失敗、podman build 失敗、systemd reload/restart 失敗で即座に非 0 で落ちること。
 - テンプレート置換: 配置後の `/etc/systemd/system/` 内の unit ファイルに `@@` が残っていないことを確認（`grep -r '@@' /etc/systemd/system/<SERVICE_PREFIX>-<SERVICE_NAME>-*`）。
