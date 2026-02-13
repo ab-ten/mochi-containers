@@ -20,7 +20,7 @@
 ## Docs
 - デプロイ仕様は `docs/DEPLOYMENT.md` に集約。更新があればここも最新に反映すること。
 - 作業メモや現在の進行状況は `CURRENT.md` を必要に応じて更新・参照すること。
-- `scripts/pre-deploy-check.sh` と `docs/pre-deploy-check.md`、`scripts/deploy-service.sh` と `docs/deploy-service.md`、`scripts/container-build.sh` と `docs/container-build.md`、`scripts/generate-index-html.sh` と `docs/generate-index-html.md` の内容は常に同期してください（詳細は `scripts/AGENTS.md` を参照）。
+- `scripts/pre-deploy-check.sh` と `docs/pre-deploy-check.md`、`scripts/deploy-service.sh` と `docs/deploy-service.md`、`scripts/deploy-vars.subr` と `docs/deploy-vars.subr.md`、`scripts/container-build.sh` と `docs/container-build.md`、`scripts/generate-index-html.sh` と `docs/generate-index-html.md` の内容は常に同期してください（詳細は `scripts/AGENTS.md` を参照）。
 - デプロイ関連の必須環境変数は `docs/DEPLOYMENT.md` / `docs/pre-deploy-check.md` / `docs/deploy-service.md` で同一の一覧になるよう維持してください。
 - 新しいサービスを `SERVICES` に追加した場合は、ルート `README.md` の「Services and Customization」に `<service>/README.md` を追記してください。
 - 各サービスの `README.md` は、以下の章構成を基準に作成・更新してください。運用手順は `make deploy` / `make <service>-deploy` と `make stop` / `make <service>-stop` を前提とし、詳細なデプロイ手順は不要です。
@@ -39,7 +39,7 @@
 - 既定値はルート `Makefile` に定義します。ユーザーは必要に応じて git 管理外の Makefile.local を用いてカスタマイズします。
 - ルート `Makefile` から子 `make` に値を必ず引き渡し、`scripts/deploy-service.sh` の `run_user_make` でも環境変数を伝播してください。
 - `scripts/pre-deploy-check.sh` / `scripts/deploy-service.sh` の必須チェックに追加し、パスは末尾スラッシュ除去などの正規化を行ってください。
-- unit/quadlet/drop-in で参照する場合は `@@VAR@@` 形式に置き換え、`scripts/replace-deploy-vars.sh` の `REPLACEMENT_VARS` に追加してください。
+- unit/quadlet/drop-in で参照する場合は `@@VAR@@` 形式に置き換えます。`scripts/deploy-vars.subr` の `DEPLOY_REQUIRED_VARS` にないものはサービスごとの Makefile に変数を追加し、`REPLACE_ADD_VAR` に変数名を追加する事で置換可能になります。
 - 変更した変数は `docs/DEPLOYMENT.md` / `docs/pre-deploy-check.md` / `docs/deploy-service.md` の一覧へ追記し、サービスの README も更新してください。
 
 ## Testing Guidelines

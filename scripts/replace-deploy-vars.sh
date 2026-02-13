@@ -2,16 +2,13 @@
 
 set -euo pipefail
 
-REPLACEMENT_VARS=(
-  ROOT_UNIT_PREFIX
-  SERVICE_PATH
-  SERVICE_NAME
-  INSTALL_ROOT
-  CERT_DOMAIN
-  MAP_LOCAL_ADDRESS
-  NFS_ROOT
-  ${REPLACE_ADD_VAR:-}
-)
+if [ -z "${INSTALL_ROOT-}" ]; then
+  echo "replace-deploy-vars: 必須環境変数が未設定: INSTALL_ROOT" >&2
+  exit 1
+fi
+SCRIPT_DIR="${INSTALL_ROOT%/}/scripts"
+# shellcheck source=deploy-vars.subr
+source "${SCRIPT_DIR}/deploy-vars.subr"
 
 err() {
   echo "replace-deploy-vars: $*" >&2
@@ -33,18 +30,15 @@ if [ ! -f "${target}" ]; then
 fi
 
 missing=()
-for var in "${REPLACEMENT_VARS[@]}"; do
-  if [ -z "${!var-}" ]; then
-    missing+=("${var}")
-  fi
-done
+deploy_vars_get_replacement_vars replacement_vars
+deploy_vars_collect_missing replacement_vars missing
 
 if [ "${#missing[@]}" -gt 0 ]; then
   err "未設定の環境変数: ${missing[*]}"
 fi
 
 sed_args=()
-for var in "${REPLACEMENT_VARS[@]}"; do
+for var in "${replacement_vars[@]}"; do
   value="${!var}"
   sed_args+=("-e" "s|@@${var}@@|${value}|g")
 done

@@ -17,6 +17,8 @@
 ## 環境変数
 ### サービス固有変数
 - サービス固有の make 変数（例: `TRILIUM_PORT`, `DBFILE_DIR` など）は各サービスの `Makefile` で定義して `export` します。ルート `Makefile` では定義しません。
+- 共通の環境変数名リストは `scripts/deploy-vars.subr` で一元管理します。
+- `scripts/deploy-vars.subr` の仕様詳細は `docs/deploy-vars.subr.md` を参照します。
 
 ### ルート `Makefile` から子 `make` に引き渡す環境変数
 - `INSTALL_ROOT`
@@ -34,19 +36,24 @@
 - `SERVICE_PATH`, `INSTALL_ROOT`, `NFS_ROOT`
 - `SERVICES`
 - `CERT_DOMAIN`, `MAP_LOCAL_ADDRESS`
+- 定義元: `scripts/deploy-vars.subr` の `DEPLOY_REQUIRED_VARS`
+- 詳細仕様: `docs/deploy-vars.subr.md`
 
 ### `scripts/deploy-service.sh` で必須
 - `SERVICE_NAME`, `SERVICE_USER`
 - `SERVICE_PATH`, `INSTALL_ROOT`, `NFS_ROOT`
 - `SERVICE_PREFIX`, `SECRETS_DIR`, `SERVICES`
 - `CERT_DOMAIN`, `MAP_LOCAL_ADDRESS`（`replace-deploy-vars.sh` が常に参照するため必須）
+- 定義元: `scripts/deploy-vars.subr` の `DEPLOY_REQUIRED_VARS`
+- 詳細仕様: `docs/deploy-vars.subr.md`
 
 ## ハードコードされた文字列をmake変数・環境変数を用いてパラメータ化する場合
 - 既定値はルート `Makefile` または に定義し、`?=` で上書き可能にします。
 - ルート `Makefile` から子 `make` に値を引き渡し、`scripts/deploy-service.sh` の `run_user_make` でも環境変数を伝播します。
 - `scripts/pre-deploy-check.sh` / `scripts/deploy-service.sh` の必須チェックに変数を追加し、パスは末尾スラッシュ除去などの正規化を行います。
-- unit/quadlet/drop-in で参照する場合は `@@VAR@@` 形式へ置換し、`scripts/replace-deploy-vars.sh` の `REPLACEMENT_VARS` に追加します。
+- unit/quadlet/drop-in で参照する場合は `@@VAR@@` 形式に置き換えます。`scripts/deploy-vars.subr` の `DEPLOY_REQUIRED_VARS` にないものはサービスごとの Makefile に変数を追加し、`REPLACE_ADD_VAR` に変数名を追加する事で置換可能になります。
 - 追加した変数は `docs/DEPLOYMENT.md` / `docs/pre-deploy-check.md` / `docs/deploy-service.md` の一覧へ反映し、関連するサービス README を更新します。
+- `scripts/deploy-vars.subr` を変更した場合は `docs/deploy-vars.subr.md` も必ず更新します。
 
 ## サービス追加時のドキュメント更新
 - 新しいサービスを `SERVICES` に追加した場合は、ルート `README.md` の「Services and Customization」に `<service>/README.md` を追記してください。
