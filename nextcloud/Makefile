@@ -15,10 +15,8 @@ NEXTCLOUD_PORT = 9000
 
 ifeq ($(shell id -u),0)
 
-UID_NC := $(shell cd / && sudo -u "${SERVICE_USER}" -H -- \
-  podman unshare awk -v id=${UID_IN_PODMAN} '$$1<=id && id<($$1+$$3){print $$2+(id-$$1); exit}' /proc/self/uid_map)
-GID_NC := $(shell cd / && sudo -u "${SERVICE_USER}" -H -- \
-  podman unshare awk -v id=${GID_IN_PODMAN} '$$1<=id && id<($$1+$$3){print $$2+(id-$$1); exit}' /proc/self/gid_map)
+UID_NC := $(shell ../scripts/print_unshare_id.sh --type uid --user "${SERVICE_USER}" --id "${UID_IN_PODMAN}")
+GID_NC := $(shell ../scripts/print_unshare_id.sh --type gid --user "${SERVICE_USER}" --id "${GID_IN_PODMAN}")
 
 print-uid-gid:
 	@echo "UID_NC: ${UID_NC}"
