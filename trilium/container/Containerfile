@@ -2,7 +2,7 @@ FROM ghcr.io/triliumnext/trilium:stable
 
 USER root
 
-RUN apk add --no-cache tzdata; \
+RUN apk add --no-cache tzdata && \
     install -d -o node -g node -m 770 /trilium_backup
 
 ARG TZ=Asia/Tokyo
