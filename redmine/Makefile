@@ -13,19 +13,11 @@ REDMINE_PORT = 9001
 -include Makefile.local
 
 ifeq ($(shell id -u),0)
-
-UID_NC := $(shell ../scripts/print_unshare_id.sh --type uid --user "${SERVICE_USER}" --id "${UID_IN_PODMAN}")
-GID_NC := $(shell ../scripts/print_unshare_id.sh --type gid --user "${SERVICE_USER}" --id "${GID_IN_PODMAN}")
-
-print-uid-gid:
-	@echo "UID_NC: ${UID_NC}"
-	@echo "GID_NC: ${GID_NC}"
-
 pre-build-root:
 	@set -e; \
 	dir="${NFS_ROOT}/${SERVICE_NAME}"; \
-	uid="${UID_NC}"; \
-	gid="${GID_NC}"; \
+	uid="${UID_HOST_MAPPED}"; \
+	gid="${GID_HOST_MAPPED}"; \
 	if [ -z "$$uid" ] || [ -z "$$gid" ]; then \
 		echo "ERROR: UID/GID のマップが取得できません。"; \
 		exit 1; \

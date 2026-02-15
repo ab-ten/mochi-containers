@@ -5,6 +5,31 @@
 
 # 共通ターゲット: deploy / stop / restart / status など
 
+ifeq ($(shell id -u),0)
+ifneq ($(strip $(UID_IN_PODMAN)),)
+UID_HOST_MAPPED ?= $(shell ../scripts/print_unshare_id.sh --type uid --user "${SERVICE_USER}" --id "${UID_IN_PODMAN}")
+endif
+ifneq ($(strip $(GID_IN_PODMAN)),)
+GID_HOST_MAPPED ?= $(shell ../scripts/print_unshare_id.sh --type gid --user "${SERVICE_USER}" --id "${GID_IN_PODMAN}")
+endif
+endif
+
+print-uid-gid:
+ifeq ($(shell id -u),0)
+ifneq ($(strip $(UID_IN_PODMAN)),)
+	@echo "UID_HOST_MAPPED: ${UID_HOST_MAPPED}"
+else
+	@echo "UID_HOST_MAPPED: (UID_IN_PODMAN is not defined)"
+endif
+ifneq ($(strip $(GID_IN_PODMAN)),)
+	@echo "GID_HOST_MAPPED: ${GID_HOST_MAPPED}"
+else
+	@echo "GID_HOST_MAPPED: (GID_IN_PODMAN is not defined)"
+endif
+else
+	@echo "print-uid-gid is available only when running as root."
+endif
+
 
 deploy:
 	@echo
