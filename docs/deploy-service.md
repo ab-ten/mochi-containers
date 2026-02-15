@@ -124,6 +124,7 @@ unit ファイルを起動する際、`[Install]` セクションの有無によ
 
 ## テンプレート処理の詳細
 user unit / quadlet / root unit のテンプレート置換は `scripts/replace-deploy-vars.sh` に集約して行う。`@@...@@` 形式の変数をデプロイ時の実値に差し替え、bind mount のパスや依存先 unit 名を動的に合わせる。
+`replace-deploy-vars.sh` は置換後に `grep -nE '@@[A-Z0-9_]+@@'` で未置換トークンを検出し、該当行が 1 件でも存在する場合はエラー終了する。
 
 ### サポートするプレースホルダー
 - `@@ROOT_UNIT_PREFIX@@` … `${SERVICE_PREFIX}-${SERVICE_NAME}-` に置換（例: `http-nginx_rp-`）。root unit のファイル名や `Requires` などで使用。

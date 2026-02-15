@@ -45,3 +45,7 @@ done
 
 #set -x
 sed -i "${sed_args[@]}" "${target}"
+
+if grep -nE '@@[A-Z0-9_]+@@' "${target}" >&2; then
+  err "未置換のプレースホルダーが残っています: ${target}"
+fi

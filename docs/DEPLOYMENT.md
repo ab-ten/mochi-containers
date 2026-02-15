@@ -81,6 +81,7 @@
    - `deploy-service.sh stop` の場合は停止のみで終了する。
 2) **配置ディレクトリ準備**: `install -d -o <service> -g <service> -m 0750` で `INSTALL_ROOT/<service>`、`/home/<service>`、`/home/<service>/.config/containers/systemd`、`/home/<service>/.config/systemd/user` を作成。
 3) **ソース配置 + 置換**: リポジトリのサービスディレクトリを `rsync -a --delete --exclude '.git' --exclude '*.swp' --exclude '*~' ./ INSTALL_ROOT/<service>/` へ、ホーム配下 (`home/`) があれば `/home/<service>/` に `rsync -a --delete --exclude '.cache' --exclude '.local' --exclude '*~'` で同期。`chmod 750` した後、`${INSTALL_ROOT}/scripts/replace-deploy-vars.sh` で user unit の `@@ROOT_UNIT_PREFIX@@` / `@@SERVICE_PATH@@` / `@@INSTALL_ROOT@@` / `@@CERT_DOMAIN@@` などを実値に置換する（`CERT_DOMAIN` は置換処理が走る場合は実質必須、`REPLACE_ADD_VAR` で追加変数も置換対象にできる）。
+   - `replace-deploy-vars.sh` は置換後に `@@[A-Z0-9_]+@@` が残っている行を `grep -nE` で出力し、1 件でもヒットした場合はエラー終了する。
    - rsync 後に `dropins/systemd/` 配下の `*.conf` に対して `${INSTALL_ROOT}/scripts/replace-deploy-vars.sh` を適用する（配布元の置換）。
    - `/home/<service>/.config/containers/systemd/` と `/home/<service>/.config/systemd/user/` の unit ファイルに `${INSTALL_ROOT}/scripts/replace-deploy-vars.sh` を適用する（`.d/*.conf` を含む）。
    - 続けて `${INSTALL_ROOT}/scripts/collect-systemd-dropins.sh` が `SERVICES` に含まれる origin から drop-in を収集し、target の user/root unit に配置する。自サービスも含めて収集するため、ユーザーカスタマイズ drop-in も反映される。drop-in は配布元で置換済みの前提で、収集側では置換しない。配置元の `dropins/systemd/` 構成や並び順の注意は `docs/collect-systemd-dropins.md` に整理。
