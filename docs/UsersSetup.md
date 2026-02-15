@@ -31,14 +31,14 @@ nextcloud/www-data ユーザーID、redmine/redmine グループID取得（NFS�
 ```
 $ sudo make -C nextcloud print-uid-gid
 make: Entering directory '/path/to/mochi-containers/nextcloud'
-UID_NC: 431104
-GID_NC: 431104
+UID_HOST_MAPPED: 431104
+GID_HOST_MAPPED: 431104
 make: Leaving directory '/path/to/mochi-containers/nextcloud'
 
 $ sudo make -C redmine print-uid-gid
 make: Entering directory '/path/to/mochi-containers/redmine'
-UID_NC: 497606
-GID_NC: 497606
+UID_HOST_MAPPED: 497606
+GID_HOST_MAPPED: 497606
 make: Leaving directory '/path/to/mochi-containers/redmine'
 
 ```
@@ -78,7 +78,7 @@ V4: /ztank/nfsv4root         -sec=sys -network 192.168.0.0/24
 /ztank/nfsv4root/containers  -network 192.168.0.200/32
 ```
 
-nfs 用ディレクトリ作成（431104, 497606 の数値は print-uid-gid で調べた数値に置き換える）
+nfs 用ディレクトリ作成（uid や gid の数値は print-uid-gid で調べた値に置き換える）
 ```
 install -d -o nextcloud -g nextcloud -m 0711 /ztank/nfsv4root/containers/nextcloud
 install -d -o 431104 -g nextcloud -m 770 /ztank/nfsv4root/containers/nextcloud/config /ztank/nfsv4root/containers/nextcloud/data /ztank/nfsv4root/containers/nextcloud/apps
