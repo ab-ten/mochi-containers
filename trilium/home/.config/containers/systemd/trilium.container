@@ -9,6 +9,7 @@ Pull=never
 ContainerName=trilium
 PublishPort=127.0.0.1:@@TRILIUM_PORT@@:8080
 Volume=@@DBFILE_DIR@@:/home/node/trilium-data:Z
+Volume=@@NFS_ROOT@@/trilium:/trilium_backup:Z
 
 [Service]
 Restart=on-failure
