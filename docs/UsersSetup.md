@@ -26,7 +26,7 @@ groupadd trilium -g 20015
 useradd -u 20015 -g 20015 trilium
 ```
 
-nextcloud/www-data ユーザーID、redmine/redmine グループID取得（NFS使用時に必要です）
+nextcloud/www-data ユーザーID、redmine/redmine グループID、trilium/trilium ユーザーID取得（NFS使用時に必要です）
 
 ```
 $ sudo make -C nextcloud print-uid-gid
@@ -40,6 +40,12 @@ make: Entering directory '/path/to/mochi-containers/redmine'
 UID_HOST_MAPPED: 497606
 GID_HOST_MAPPED: 497606
 make: Leaving directory '/path/to/mochi-containers/redmine'
+
+$ sudo make -C trilium print-uid-gid
+make: Entering directory '/path/to/mochi-containers/trilium'
+UID_HOST_MAPPED: <trilium_uid_host_mapped>
+GID_HOST_MAPPED: <trilium_gid_host_mapped>
+make: Leaving directory '/path/to/mochi-containers/trilium'
 
 ```
 
@@ -65,7 +71,7 @@ pw groupadd redmine -g 20014
 pw useradd redmine -u 20014 -g redmine -m -s /usr/sbin/nologin
 
 pw groupadd trilium -g 20015
-pw useradd trilium -u 20015 -g redmine -m -s /usr/sbin/nologin
+pw useradd trilium -u 20015 -g trilium -m -s /usr/sbin/nologin
 ```
 
 ### freebsd NFSv4 server NFS 設定
@@ -83,6 +89,7 @@ nfs 用ディレクトリ作成（uid や gid の数値は print-uid-gid で調�
 install -d -o nextcloud -g nextcloud -m 0711 /ztank/nfsv4root/containers/nextcloud
 install -d -o 431104 -g nextcloud -m 770 /ztank/nfsv4root/containers/nextcloud/config /ztank/nfsv4root/containers/nextcloud/data /ztank/nfsv4root/containers/nextcloud/apps
 install -d -g 497606 -o redmine -m 2770 /ztank/nfsv4root/containers/redmine
+install -d -o trilium -g 563143 -m 2770 /ztank/nfsv4root/containers/trilium
 ```
 
 ### mochi linux server NFS 設定
