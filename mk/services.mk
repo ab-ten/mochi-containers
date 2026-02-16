@@ -4,6 +4,7 @@
 # 各サービス側 Makefile で定義してから include する前提。
 
 # 共通ターゲット: deploy / stop / restart / status など
+EARLY_STOP ?= No
 
 ifeq ($(shell id -u),0)
 ifneq ($(strip $(UID_IN_PODMAN)),)
@@ -37,6 +38,14 @@ deploy:
 	@../scripts/pre-deploy-check.sh
 	@echo "Deploying $(SERVICE_NAME)..."
 	@../scripts/deploy-service.sh
+
+earlystop:
+	@if [ "$(EARLY_STOP)" = "Yes" ]; then \
+	  echo "Early stopping $(SERVICE_NAME)..."; \
+	  ../scripts/deploy-service.sh stop; \
+	else \
+	  echo "Skipping early stop for $(SERVICE_NAME) (EARLY_STOP=$(EARLY_STOP))"; \
+	fi
 
 stop:
 	@echo "Stopping $(SERVICE_NAME)..."

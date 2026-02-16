@@ -1,7 +1,7 @@
 # DEPLOYMENT
 
-デプロイスクリプト（`scripts/deploy-service.sh`）の仕様メモ。トップの `Makefile` から `make deploy` を叩くと、まず `stop` 依存で `SERVICES` に列挙された全サービスの停止を先に実行し、その後に `SERVICES` 順で各サービスの `make deploy` が実行される。
-この停止先行は、`trilium` の websocket セッションが残った状態で `nginx_rp` を停止すると graceful shutdown がタイムアウトしやすい問題を避けるためです。`trilium` origin を先に停止して websocket セッションを終了させてから `nginx_rp` を停止することで、停止待ち時間を短縮します。
+デプロイスクリプト（`scripts/deploy-service.sh`）の仕様メモ。トップの `Makefile` から `make deploy` を実行すると、まず `earlystop` 依存で `SERVICES` を順に回し、`EARLY_STOP=Yes` のサービスだけ先行停止します。その後に `SERVICES` 順で各サービスの `make deploy` が実行されます。
+この先行停止は、`trilium` の websocket セッションが残った状態で `nginx_rp` を停止すると graceful shutdown がタイムアウトしやすい問題を避けるためです。`trilium` origin を先に停止して websocket セッションを終了させてから `nginx_rp` を停止することで、停止待ち時間を短縮します。現行設定では `trilium` と `nginx_rp` を `EARLY_STOP=Yes` としています。
 
 ## 前提・ツール
 - rootless Podman 前提。nginx_rp はコンテナを `-p 8443:443` で待受させ、443/tcp → 8443/tcp は systemd socket activation + systemd-socket-proxyd で転送。
