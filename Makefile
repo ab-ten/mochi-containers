@@ -42,7 +42,7 @@ prepare-common:
 	@SERVICE_PATH="${INSTALL_ROOT}/$*" $(MAKE) -C "$*" stop
 
 %-earlystop: prepare-common
-	@SERVICE_PATH="${INSTALL_ROOT}/$*" $(MAKE) -C "$*" earlystop
+	@SERVICE_PATH="${INSTALL_ROOT}/$*" $(MAKE) --no-print-directory -C "$*" earlystop
 
 #
 intall-pre-commit-hook: .git/hooks/pre-commit
