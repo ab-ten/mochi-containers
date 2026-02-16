@@ -20,12 +20,14 @@ $(error この Makefile は root で実行してください。例: sudo make de
 endif
 
 
-.PHONY: all deploy stop $(SERVICES) prepare-common intall-pre-commit-hook
+.PHONY: all deploy earlystop stop $(SERVICES) prepare-common intall-pre-commit-hook
 
 all:
 	@echo "Available services: $(SERVICES)"
 
-deploy: stop $(SERVICES:%=%-deploy)
+deploy: earlystop $(SERVICES:%=%-deploy)
+
+earlystop: $(SERVICES:%=%-earlystop)
 
 stop: $(SERVICES:%=%-stop)
 
@@ -38,6 +40,9 @@ prepare-common:
 
 %-stop: prepare-common
 	@SERVICE_PATH="${INSTALL_ROOT}/$*" $(MAKE) -C "$*" stop
+
+%-earlystop: prepare-common
+	@SERVICE_PATH="${INSTALL_ROOT}/$*" $(MAKE) -C "$*" earlystop
 
 #
 intall-pre-commit-hook: .git/hooks/pre-commit
