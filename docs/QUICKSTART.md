@@ -59,6 +59,7 @@ sudo make deploy
 ```
 
 `make deploy` は最初に `make earlystop` を実行し、`EARLY_STOP=Yes` が設定されたサービスのみを `SERVICES` の順で先行停止してから、`SERVICES` の順番にデプロイします。現行設定では `trilium` と `nginx_rp` が先行停止対象です。これは `trilium` の websocket セッションを先に終了させ、`nginx_rp` 停止時の graceful shutdown タイムアウトを避けるためです。サービス単体で実行したい場合は `make <service>-deploy` を使用してください（例: `make nginx_rp-deploy`）。
+ただし、`make <service>-deploy` は対象サービスのみを再デプロイするため、関連サービスへの反映は行いません。例えば `make redmine-deploy` だけでは `redmine/https_redmine.conf` は `nginx_rp` に収集されないため、nginx 側反映が必要な変更では `make deploy`（または必要な関連サービスも含めた再デプロイ）を実行してください。
 
 ## 6. 動作確認（最小）
 以下は最低限の確認例です。

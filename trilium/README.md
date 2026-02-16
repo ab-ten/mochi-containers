@@ -40,6 +40,7 @@
 - デプロイ: `make deploy` / `make trilium-deploy`
 - 停止: `make stop` / `make trilium-stop`
 - ログ: `sudo journalctl -M "trilium@.host" --user -u trilium.service`
+- `make trilium-deploy` は trilium 単体のみ更新します。`https_trilium.conf` の変更を nginx 公開設定へ反映する場合は `make deploy` または `make nginx_rp-deploy` も実行してください。
 
 ## 連携メモ
 - nginx の upstream は `@@MAP_LOCAL_ADDRESS@@:@@TRILIUM_PORT@@` を参照します。
