@@ -4,7 +4,7 @@
 
 ## ゴールと前提
 - 役割: `mk/services.mk` の `deploy` ターゲット経由でサービスごとに rsync デプロイとビルドを行い、systemd (--user / root) を最新化する。
-- 呼び出し元: ルート `Makefile` の `make deploy` は `stop` 依存を持ち、全サービス停止を先に実行した後で `make -C <service> deploy` を順次呼び出す（ルート Makefile 自体が root 実行を必須化）。`cwd` はサービスディレクトリ（例: `nginx_rp/`）。この直前に `scripts/pre-deploy-check.sh` が走って、ユーザーやディレクトリの前提を担保済み。
+- 呼び出し元: ルート `Makefile` の `make deploy` は `earlystop` 依存を持ち、`EARLY_STOP=Yes` が設定されたサービスのみを先に停止した後で `make -C <service> deploy` を順次呼び出す（ルート Makefile 自体が root 実行を必須化）。`cwd` はサービスディレクトリ（例: `nginx_rp/`）。この直前に `scripts/pre-deploy-check.sh` が走って、ユーザーやディレクトリの前提を担保済み。
 - 共通スクリプト参照: `deploy-service.sh` は `SCRIPT_DIR=${INSTALL_ROOT}/scripts` を参照し、`replace-deploy-vars.sh` / `collect-systemd-dropins.sh` / `container-build.sh` を同ディレクトリから実行する。`prepare-common` が事前に `mk/` と `scripts/` を `${INSTALL_ROOT}/` へ同期している前提。
 - コンテナビルドの詳細仕様は `docs/container-build.md` を参照してください。
 - rootless Podman 前提。systemd user unit / quadlet はリポジトリ上では `<service>/home/.config/containers/systemd/` に集約し、デプロイ先では `/home/<service>/.config/containers/systemd/` に配置する（nginx_rp もこの構成）。
