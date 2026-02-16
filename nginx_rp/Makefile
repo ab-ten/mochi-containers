@@ -2,6 +2,7 @@
 export
 SERVICE_NAME = nginx_rp
 SERVICE_USER = nginx_rp
+EARLY_STOP = Yes
 REPLACE_FILES_USER = \
 	${SERVICE_PATH}/container/conf/https_default.conf \
 	${SERVICE_PATH}/container/conf/http_default.conf \
