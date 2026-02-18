@@ -235,7 +235,7 @@ loginctl enable-linger "${SERVICE_USER}"
 
 if grep -q '^pre-build-user:' Makefile; then
   info "pre-build-user を実行"
-  run_user_make -C "${START_DIR}" pre-build-user
+  run_user_make -C "${SERVICE_PATH}" pre-build-user
 fi
 
 if grep -q '^pre-build-root:' Makefile; then

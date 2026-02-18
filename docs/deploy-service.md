@@ -66,7 +66,7 @@
 7. enable-linger 処理
    - 先に `loginctl enable-linger ${SERVICE_USER}` を実行（ユーザーセッションが無くても podman build / systemd --user が動くようにする）。
 8. pre-build フック:
-   - `grep -q '^pre-build-user:' Makefile` で存在したら `sudo -u ${SERVICE_USER} INSTALL_ROOT=... NFS_ROOT=... SERVICE_PATH=... make -C <初期cwd> pre-build-user`（`cwd` は `deploy-service.sh` を呼び出したサービスディレクトリ）。
+   - `grep -q '^pre-build-user:' Makefile` で存在したら `sudo -u ${SERVICE_USER} INSTALL_ROOT=... NFS_ROOT=... SERVICE_PATH=... make -C "${SERVICE_PATH}" pre-build-user`（`cwd` は INSTALL_ROOT 下の `${SERVICE_PATH}`）。
    - `grep -q '^pre-build-root:' Makefile` で存在したら root のまま `make pre-build-root`。
    - `nginx_rp` では `pre-build-root` 内で `scripts/collect-nginx-conf.sh` と `scripts/generate-index-html.sh` を実行し、`container/conf/` の vhost 設定収集と `container/html/index.html` の再生成を行う。実行順は「`rsync --delete` で初期化 → `collect-nginx-conf.sh` で `SERVICES` 分を収集 → `generate-index-html.sh` で一覧生成」です。
    - そのため `make <service>-deploy` の単体実行では、他サービス側で変更した `https_<service>.conf` / `http_<service>.conf` は `nginx_rp` に反映されません。vhost 変更を公開設定へ反映する場合は `make deploy` または `make nginx_rp-deploy` を追加で実行してください。
