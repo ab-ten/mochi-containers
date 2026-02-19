@@ -85,6 +85,10 @@ run_cross_service_root_hooks() {
   local svc_dir
   local svc_service_path
 
+  # サービス横断 root hook は「デプロイ対象サービス」の phase で実行する。
+  # hook を定義している側（svc）の Makefile が評価されるため、
+  # フック内で SERVICE_NAME/SERVICE_USER/SERVICE_PATH を参照すると svc 側の値になる。
+  # デプロイ対象サービスを参照したい場合は HOOK_TARGET_SERVICE_* を使用する。
   info "${phase} hook をサービス横断で実行: target=${hook_target}"
   for svc in ${SERVICES}; do
     svc_dir="${BASE_REPO_DIR}/${svc}"
@@ -99,6 +103,9 @@ run_cross_service_root_hooks() {
 
     svc_service_path="${INSTALL_ROOT}/${svc}"
     info "${phase} hook を実行: service=${svc}, target=${hook_target}"
+    # 注意:
+    # - SERVICE_PATH は hook 呼び出し元サービス（svc）のパスを渡す。
+    # - HOOK_TARGET_SERVICE_* はデプロイ対象サービスの情報を渡す。
     make --always-make --no-print-directory -C "${svc_dir}" \
       "SERVICE_PATH=${svc_service_path}" \
       "HOOK_TARGET_SERVICE_NAME=${SERVICE_NAME}" \

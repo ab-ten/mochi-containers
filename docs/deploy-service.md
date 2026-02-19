@@ -37,6 +37,10 @@
 ## 任意で使う環境変数
 - `BASE_REPO_DIR` … `pre-build` / `post-build` の Makefile 呼び出しに渡す値。
 - `HOOK_TARGET_SERVICE_NAME` / `HOOK_TARGET_SERVICE_USER` / `HOOK_TARGET_SERVICE_PATH` … サービス横断 root フック（`pre-build-root-hook-%` / `post-build-root-hook-%`）の呼び出し時に渡されるデプロイ対象サービス情報。
+  - フック本体は「hook を定義しているサービス」の Makefile コンテキストで実行されます。
+  - そのため、フック内で `SERVICE_NAME` / `SERVICE_USER` / `SERVICE_PATH` / `ROOT_UNIT_PREFIX` / `SERVICE_HOME` / `USER_UNIT_DIR` などを参照した場合は、原則として hook 定義側サービスの値を参照します。
+  - デプロイ対象サービス（`deploy-service.sh` を現在実行している対象）の情報が必要な場合は、必ず `HOOK_TARGET_SERVICE_*` を参照してください。
+  - hook 定義側サービスの root unit 接頭辞が必要な場合は、`$(SERVICE_PREFIX)-$(SERVICE_NAME)-` で計算できます。
 - `REPLACE_FILES_USER` / `REPLACE_FILES_ROOT` … 値が空でなければ `replace-files-user` / `replace-files-root` ターゲットを実行するトリガ。
 - `REPLACE_ADD_VAR` … `replace-deploy-vars.sh` の置換対象変数を追加する（例: `REPLACE_ADD_VAR=DEPLOY_ENV` で `@@DEPLOY_ENV@@` を置換）。
 - `run_user_make` に渡す環境変数リストは `scripts/deploy-vars.subr` の `DEPLOY_REQUIRED_VARS` で一元管理する。
@@ -73,6 +77,7 @@
    - フック呼び出しは `BASE_REPO_DIR/<service>/Makefile` を対象に実行する。これにより、`Makefile.local` で定義したフックも利用できる。
    - `mk/services.mk` には no-op の `pre-build-root-hook-%` が定義されているため、フック未定義サービスがあってもエラーにはならない。サービス固有の明示ターゲットが定義されている場合は、明示ターゲットが優先される。
    - フック実行時には `HOOK_TARGET_SERVICE_NAME` / `HOOK_TARGET_SERVICE_USER` / `HOOK_TARGET_SERVICE_PATH` を環境変数として渡す。
+   - フック内で `SERVICE_*` 系変数を参照すると hook 定義側サービスの値を参照します。デプロイ対象サービスを参照する場合は `HOOK_TARGET_SERVICE_*` を使用してください。
    - フック内で `INSTALL_ROOT/<service>` 配下のファイル（例: `replace-deploy-vars.sh` 適用済みファイル）を参照する場合は、`SERVICES` の順序に依存する。対象サービスの deploy が未実行であれば、前回 deploy 時点の古い内容を参照するか、初回 deploy ではファイルが存在しない可能性がある。
    - `nginx_rp` では `pre-build-root` 内で `scripts/collect-nginx-conf.sh` と `scripts/generate-index-html.sh` を実行し、`container/conf/` の vhost 設定収集と `container/html/index.html` の再生成を行う。実行順は「`rsync --delete` で初期化 → `collect-nginx-conf.sh` で `SERVICES` 分を収集 → `generate-index-html.sh` で一覧生成」です。
    - そのため `make <service>-deploy` の単体実行では、他サービス側で変更した `https_<service>.conf` / `http_<service>.conf` は `nginx_rp` に反映されません。vhost 変更を公開設定へ反映する場合は `make deploy` または `make nginx_rp-deploy` を追加で実行してください。
@@ -89,6 +94,7 @@
    - `post-build-user` / `post-build-root` があれば pre-build 同様に実行。`post-build-user` は `sudo -u ${SERVICE_USER} INSTALL_ROOT=... NFS_ROOT=... SERVICE_PATH=... make -C ${SERVICE_PATH} post-build-user` で呼ばれる。
    - `post-build-root` 実行後、`SERVICES` を巡回して各サービスの `post-build-root-hook-<デプロイ対象サービス名>` を root で実行する。
    - `mk/services.mk` には no-op の `post-build-root-hook-%` が定義されているため、フック未定義サービスがあってもエラーにはならない。
+   - post-build 側も pre-build 側と同様に、`SERVICE_*` 系は hook 定義側サービスの値になります。デプロイ対象サービスを参照する場合は `HOOK_TARGET_SERVICE_*` を使用してください。
    - フック内で `INSTALL_ROOT/<service>` 配下を参照する場合の順序依存・ファイル不在の可能性は、pre-build フックと同様に考慮する。
    - nginx 系なら `post-build-user` で `podman run --rm localhost/${SERVICE_NAME}:dev nginx -t` で構文チェックを行うことが期待される。
 12. 環境変数ファイルの配置:
