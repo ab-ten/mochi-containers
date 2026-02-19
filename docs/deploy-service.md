@@ -77,6 +77,12 @@
    - フック呼び出しは `BASE_REPO_DIR/<service>/Makefile` を対象に実行する。これにより、`Makefile.local` で定義したフックも利用できる。
    - `mk/services.mk` には no-op の `pre-build-root-hook-%` が定義されているため、フック未定義サービスがあってもエラーにはならない。サービス固有の明示ターゲットが定義されている場合は、明示ターゲットが優先される。
    - フック実行時には `HOOK_TARGET_SERVICE_NAME` / `HOOK_TARGET_SERVICE_USER` / `HOOK_TARGET_SERVICE_PATH` を環境変数として渡す。
+   - フック呼び出しは `make --no-print-directory` で実行され、`--always-make`（`-B`）は付与しない。したがって hook ターゲットは make の通常更新判定（タイムスタンプ）に従って実行・スキップされる。
+   - 次のいずれかに該当する hook は `.PHONY`（または `FORCE` 依存）を定義し、毎回実行されるようにする。
+     - hook がファイル更新よりも副作用（外部状態の収集、設定の再生成、通知など）を主目的としている。
+     - hook ターゲット名と同名のファイル/ディレクトリが存在し得る。
+     - 依存ファイルのタイムスタンプが変わらなくても、デプロイのたびに実行する必要がある。
+   - 逆に、成果物と依存関係で増分実行を正しく制御したい hook は `.PHONY` 化せず、入力と出力を明示したターゲットとして定義する。
    - フック内で `SERVICE_*` 系変数を参照すると hook 定義側サービスの値を参照します。デプロイ対象サービスを参照する場合は `HOOK_TARGET_SERVICE_*` を使用してください。
    - フック内で `INSTALL_ROOT/<service>` 配下のファイル（例: `replace-deploy-vars.sh` 適用済みファイル）を参照する場合は、`SERVICES` の順序に依存する。対象サービスの deploy が未実行であれば、前回 deploy 時点の古い内容を参照するか、初回 deploy ではファイルが存在しない可能性がある。
    - `nginx_rp` では `pre-build-root` 内で `scripts/collect-nginx-conf.sh` と `scripts/generate-index-html.sh` を実行し、`container/conf/` の vhost 設定収集と `container/html/index.html` の再生成を行う。実行順は「`rsync --delete` で初期化 → `collect-nginx-conf.sh` で `SERVICES` 分を収集 → `generate-index-html.sh` で一覧生成」です。

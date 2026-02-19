@@ -106,7 +106,7 @@ run_cross_service_root_hooks() {
     # 注意:
     # - SERVICE_PATH は hook 呼び出し元サービス（svc）のパスを渡す。
     # - HOOK_TARGET_SERVICE_* はデプロイ対象サービスの情報を渡す。
-    make --always-make --no-print-directory -C "${svc_dir}" \
+    make --no-print-directory -C "${svc_dir}" \
       "SERVICE_PATH=${svc_service_path}" \
       "HOOK_TARGET_SERVICE_NAME=${SERVICE_NAME}" \
       "HOOK_TARGET_SERVICE_USER=${SERVICE_USER}" \
