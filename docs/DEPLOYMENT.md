@@ -89,6 +89,7 @@
 5) **linger 有効化**: `loginctl enable-linger <service>`。
 6) **pre-build-user / pre-build-root**: Makefile にターゲットがある場合のみ実行。user 側は `INSTALL_ROOT` / `SERVICE_PATH` を環境で渡してサービスユーザー権限、root 側はそのまま。
    - `nginx_rp` の `pre-build-root` は `scripts/collect-nginx-conf.sh` で `SERVICES` に含まれる各サービスの `${INSTALL_ROOT}/<service>/http_<service>.conf` / `https_<service>.conf` を `nginx_rp/container/conf/` に集約し、続けて `scripts/generate-index-html.sh` で `nginx_rp/container/html/index.html` を再生成する。`SERVICES` の並びは `ssl_update` → 各サービス → `nginx_rp` の順にしておく。
+   - サービス横断 root hook（`pre-build-root-hook-%` / `post-build-root-hook-%`）は hook 定義側サービスの Makefile コンテキストで実行される。デプロイ対象サービスの情報が必要な場合は `HOOK_TARGET_SERVICE_*` を使用する。
 7) **replace-files-user / replace-files-root**: `REPLACE_FILES_USER` / `REPLACE_FILES_ROOT` が空でなければ `make replace-files-user` / `make replace-files-root` を実行。
    - `make <service>-deploy` のような単体デプロイでは、`SERVICES` 全体を前提とした関連サービスへの反映は行われない。例えば `make redmine-deploy` のみを実行しても `redmine/https_redmine.conf` は `nginx_rp/container/conf/` に集約されないため、nginx 側への反映が必要な場合は `nginx_rp` を含めて再デプロイする。
 8) **コンテナビルド**: `container/` と `container.*` ディレクトリを検出し、存在するディレクトリごとに `${INSTALL_ROOT}/scripts/container-build.sh` を実行する。`container-build.sh` は `custom-build.sh` があれば優先実行し、なければ共通処理として `podman build` を実行する。`custom-build.sh` が存在して実行不可な場合はエラー終了する。

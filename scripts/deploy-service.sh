@@ -78,6 +78,43 @@ run_system_systemctl_disable() {
   fi
 }
 
+run_cross_service_root_hooks() {
+  local phase="$1"
+  local hook_target="${phase}-hook-${SERVICE_NAME}"
+  local svc
+  local svc_dir
+  local svc_service_path
+
+  # サービス横断 root hook は「デプロイ対象サービス」の phase で実行する。
+  # hook を定義している側（svc）の Makefile が評価されるため、
+  # フック内で SERVICE_NAME/SERVICE_USER/SERVICE_PATH を参照すると svc 側の値になる。
+  # デプロイ対象サービスを参照したい場合は HOOK_TARGET_SERVICE_* を使用する。
+  info "${phase} hook をサービス横断で実行: target=${hook_target}"
+  for svc in ${SERVICES}; do
+    svc_dir="${BASE_REPO_DIR}/${svc}"
+    if [ ! -d "${svc_dir}" ]; then
+      info "hook 呼び出し元ディレクトリが存在しないためスキップ: ${svc_dir}"
+      continue
+    fi
+    if [ ! -f "${svc_dir}/Makefile" ]; then
+      info "hook 呼び出し元 Makefile が存在しないためスキップ: ${svc_dir}/Makefile"
+      continue
+    fi
+
+    svc_service_path="${INSTALL_ROOT}/${svc}"
+    info "${phase} hook を実行: service=${svc}, target=${hook_target}"
+    # 注意:
+    # - SERVICE_PATH は hook 呼び出し元サービス（svc）のパスを渡す。
+    # - HOOK_TARGET_SERVICE_* はデプロイ対象サービスの情報を渡す。
+    make --no-print-directory -C "${svc_dir}" \
+      "SERVICE_PATH=${svc_service_path}" \
+      "HOOK_TARGET_SERVICE_NAME=${SERVICE_NAME}" \
+      "HOOK_TARGET_SERVICE_USER=${SERVICE_USER}" \
+      "HOOK_TARGET_SERVICE_PATH=${SERVICE_PATH}" \
+      "${hook_target}"
+  done
+}
+
 reorder_units_sockets_first() {
   local -n arr_ref=$1
   local timers=()
@@ -242,6 +279,7 @@ if grep -q '^pre-build-root:' Makefile; then
   info "pre-build-root を実行"
   make -C "${START_DIR}" pre-build-root
 fi
+run_cross_service_root_hooks pre-build-root
 
 if [ -n "${REPLACE_FILES_USER-}" ]; then
   info "replace-files-user を実行"
@@ -289,6 +327,7 @@ if grep -q '^post-build-root:' Makefile; then
   info "post-build-root を実行"
   make -C "${SERVICE_PATH}" post-build-root
 fi
+run_cross_service_root_hooks post-build-root
 
 if grep -q '^env-files-user:' Makefile; then
   info "env-files-user を実行"

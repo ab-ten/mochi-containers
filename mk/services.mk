@@ -76,6 +76,12 @@ replace-files-root:
 	  done; \
 	fi
 
+pre-build-root-hook-%:
+	@:
+
+post-build-root-hook-%:
+	@:
+
 $(SERVICE_PATH)/%.env-user: $(SECRETS_DIR)/%.env-user
 	install -o "$(SERVICE_USER)" -g "$(SERVICE_USER)" -m 600 "$<" "$@"
 	../scripts/replace-deploy-vars.sh "$@"
