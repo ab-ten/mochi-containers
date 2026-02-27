@@ -1,0 +1,21 @@
+[Unit]
+Description=git-http-backend auth proxy container (rootless)
+After=network-online.target git_backend.service
+Wants=network-online.target
+Requires=git_backend.service
+
+[Container]
+Image=localhost/git_backend-nginx:dev
+Pull=never
+ContainerName=git_backend-nginx
+PublishPort=127.0.0.1:@@GIT_BACKEND_PORT@@:80
+Volume=@@GIT_BACKEND_SOCK_VOLUME@@:/run/git-backend-fcgi
+Volume=@@SERVICE_PATH@@/git_backend.htpasswd:/etc/nginx/git_backend.htpasswd:ro,Z
+
+[Service]
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=40
+
+[Install]
+WantedBy=default.target
