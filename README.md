@@ -66,6 +66,7 @@ OpenSUSE MicroOS 上で **rootless Podman + systemd user unit** を使用し、*
   - `trilium/README.md`
   - `nextcloud/README.md`
   - `redmine/README.md`
+  - `git_backend/README.md`
   - `security_package/README.md`
 
 ---
@@ -74,6 +75,8 @@ OpenSUSE MicroOS 上で **rootless Podman + systemd user unit** を使用し、*
 
 - `NFS_ROOT`（デフォルト: `/srv/nfs/containers/`）を NFSv4 等でマウントして永続化できます
 - NFS サーバー側の権限や設定が必要で、環境依存度は高めです
+- `git_backend` と `redmine` を連携する場合は、`docs/UsersSetup.md` の 2 段階ディレクトリ構成（上位 + `repos`）で group / permission を分離してください
+- SELinux 環境では `virt_use_nfs=on` を前提に、NFS パスの volume mount では `:z` / `:Z` を使用しません（ローカルディスクの bind mount のみ `:z` / `:Z` を使用）
 
 ---
 

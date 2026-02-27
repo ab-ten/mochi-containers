@@ -12,6 +12,7 @@
 - 配置ルートは `INSTALL_ROOT`（例: `/srv/project/`）。各サービスはその直下に `<service>` ディレクトリを持ち、所有者は `<service>:<service>`。サービスユーザーのホームディレクトリは OS 既定の `/home/<service>` を使う（Podman ストレージが OS の変更に追従できるよう `/srv` 配下にホームを置かない）。
 - 必須コマンド: `sudo`, `rsync`, `podman`, `systemctl`（system と --user の両方）。ユーザー情報確認用に `getent` / `id` なども使用可。
 - --user の systemctl 呼び出しは `sudo systemctl -M "<user>@.host" --user ...` を使う（linger 前提）。
+- SELinux 有効環境で NFS を bind mount する場合は `docs/UsersSetup.md` の方針に従う。`virt_use_nfs=on` を前提に NFS パスの `Volume=` では `:z` / `:Z` を付けない（ローカルディスクの bind mount のみ `:z` / `:Z` を使用）。
 - 環境差異やオーバーライドは考慮不要。ロールバックは git でタグ/コミットを指定して再デプロイする。
 
 ## 環境変数
