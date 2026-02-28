@@ -20,6 +20,8 @@
 
 ## サービス固有変数の定義場所
 - サービス固有の make 変数（例: `TRILIUM_PORT`, `DBFILE_DIR` など）は各サービスの `Makefile` で定義して `export` し、ルート `Makefile` では定義しません。
+- 各サービスの `Makefile` では、サービス固有の変数・ターゲットを定義した後、ファイル末尾で `include ../mk/services.mk` を記述してください。
+- root 実行時に `UID_IN_PODMAN` / `GID_IN_PODMAN` を定義するサービスでは、`mk/services.mk` が `print_unshare_id.sh` で導出した `UID_HOST_MAPPED` / `GID_HOST_MAPPED` が空文字列の場合に即時エラー終了します。
 
 ## 必須環境変数
 - 変数名リストは `scripts/deploy-vars.subr` の `DEPLOY_REQUIRED_VARS` で一元管理する。
@@ -36,6 +38,11 @@
 
 ## 任意で使う環境変数
 - `BASE_REPO_DIR` … `pre-build` / `post-build` の Makefile 呼び出しに渡す値。
+- `HOOK_TARGET_SERVICE_NAME` / `HOOK_TARGET_SERVICE_USER` / `HOOK_TARGET_SERVICE_PATH` … サービス横断 root フック（`pre-build-root-hook-%` / `post-build-root-hook-%`）の呼び出し時に渡されるデプロイ対象サービス情報。
+  - フック本体は「hook を定義しているサービス」の Makefile コンテキストで実行されます。
+  - そのため、フック内で `SERVICE_NAME` / `SERVICE_USER` / `SERVICE_PATH` / `ROOT_UNIT_PREFIX` / `SERVICE_HOME` / `USER_UNIT_DIR` などを参照した場合は、原則として hook 定義側サービスの値を参照します。
+  - デプロイ対象サービス（`deploy-service.sh` を現在実行している対象）の情報が必要な場合は、必ず `HOOK_TARGET_SERVICE_*` を参照してください。
+  - hook 定義側サービスの root unit 接頭辞が必要な場合は、`$(SERVICE_PREFIX)-$(SERVICE_NAME)-` で計算できます。
 - `REPLACE_FILES_USER` / `REPLACE_FILES_ROOT` … 値が空でなければ `replace-files-user` / `replace-files-root` ターゲットを実行するトリガ。
 - `REPLACE_ADD_VAR` … `replace-deploy-vars.sh` の置換対象変数を追加する（例: `REPLACE_ADD_VAR=DEPLOY_ENV` で `@@DEPLOY_ENV@@` を置換）。
 - `run_user_make` に渡す環境変数リストは `scripts/deploy-vars.subr` の `DEPLOY_REQUIRED_VARS` で一元管理する。
@@ -66,8 +73,20 @@
 7. enable-linger 処理
    - 先に `loginctl enable-linger ${SERVICE_USER}` を実行（ユーザーセッションが無くても podman build / systemd --user が動くようにする）。
 8. pre-build フック:
-   - `grep -q '^pre-build-user:' Makefile` で存在したら `sudo -u ${SERVICE_USER} INSTALL_ROOT=... NFS_ROOT=... SERVICE_PATH=... make -C <初期cwd> pre-build-user`（`cwd` は `deploy-service.sh` を呼び出したサービスディレクトリ）。
+   - `grep -q '^pre-build-user:' Makefile` で存在したら `sudo -u ${SERVICE_USER} INSTALL_ROOT=... NFS_ROOT=... SERVICE_PATH=... make -C "${SERVICE_PATH}" pre-build-user`（`cwd` は INSTALL_ROOT 下の `${SERVICE_PATH}`）。
    - `grep -q '^pre-build-root:' Makefile` で存在したら root のまま `make pre-build-root`。
+   - `pre-build-root` 実行後、`SERVICES` を巡回して各サービスの `pre-build-root-hook-<デプロイ対象サービス名>` を root で実行する。
+   - フック呼び出しは `BASE_REPO_DIR/<service>/Makefile` を対象に実行する。これにより、`Makefile.local` で定義したフックも利用できる。
+   - `mk/services.mk` には no-op の `pre-build-root-hook-%` が定義されているため、フック未定義サービスがあってもエラーにはならない。サービス固有の明示ターゲットが定義されている場合は、明示ターゲットが優先される。
+   - フック実行時には `HOOK_TARGET_SERVICE_NAME` / `HOOK_TARGET_SERVICE_USER` / `HOOK_TARGET_SERVICE_PATH` を環境変数として渡す。
+   - フック呼び出しは `make --no-print-directory` で実行され、`--always-make`（`-B`）は付与しない。したがって hook ターゲットは make の通常更新判定（タイムスタンプ）に従って実行・スキップされる。
+   - 次のいずれかに該当する hook は `.PHONY`（または `FORCE` 依存）を定義し、毎回実行されるようにする。
+     - hook がファイル更新よりも副作用（外部状態の収集、設定の再生成、通知など）を主目的としている。
+     - hook ターゲット名と同名のファイル/ディレクトリが存在し得る。
+     - 依存ファイルのタイムスタンプが変わらなくても、デプロイのたびに実行する必要がある。
+   - 逆に、成果物と依存関係で増分実行を正しく制御したい hook は `.PHONY` 化せず、入力と出力を明示したターゲットとして定義する。
+   - フック内で `SERVICE_*` 系変数を参照すると hook 定義側サービスの値を参照します。デプロイ対象サービスを参照する場合は `HOOK_TARGET_SERVICE_*` を使用してください。
+   - フック内で `INSTALL_ROOT/<service>` 配下のファイル（例: `replace-deploy-vars.sh` 適用済みファイル）を参照する場合は、`SERVICES` の順序に依存する。対象サービスの deploy が未実行であれば、前回 deploy 時点の古い内容を参照するか、初回 deploy ではファイルが存在しない可能性がある。
    - `nginx_rp` では `pre-build-root` 内で `scripts/collect-nginx-conf.sh` と `scripts/generate-index-html.sh` を実行し、`container/conf/` の vhost 設定収集と `container/html/index.html` の再生成を行う。実行順は「`rsync --delete` で初期化 → `collect-nginx-conf.sh` で `SERVICES` 分を収集 → `generate-index-html.sh` で一覧生成」です。
    - そのため `make <service>-deploy` の単体実行では、他サービス側で変更した `https_<service>.conf` / `http_<service>.conf` は `nginx_rp` に反映されません。vhost 変更を公開設定へ反映する場合は `make deploy` または `make nginx_rp-deploy` を追加で実行してください。
 9. `replace-files-user` / `replace-files-root`:
@@ -81,12 +100,16 @@
    - `custom-build.sh` がない場合は共通処理として `podman build -t "${CONTAINER_IMAGE}" "${CONTAINER_DIR}"` を行う。
 11. post-build フック:
    - `post-build-user` / `post-build-root` があれば pre-build 同様に実行。`post-build-user` は `sudo -u ${SERVICE_USER} INSTALL_ROOT=... NFS_ROOT=... SERVICE_PATH=... make -C ${SERVICE_PATH} post-build-user` で呼ばれる。
+   - `post-build-root` 実行後、`SERVICES` を巡回して各サービスの `post-build-root-hook-<デプロイ対象サービス名>` を root で実行する。
+   - `mk/services.mk` には no-op の `post-build-root-hook-%` が定義されているため、フック未定義サービスがあってもエラーにはならない。
+   - post-build 側も pre-build 側と同様に、`SERVICE_*` 系は hook 定義側サービスの値になります。デプロイ対象サービスを参照する場合は `HOOK_TARGET_SERVICE_*` を使用してください。
+   - フック内で `INSTALL_ROOT/<service>` 配下を参照する場合の順序依存・ファイル不在の可能性は、pre-build フックと同様に考慮する。
    - nginx 系なら `post-build-user` で `podman run --rm localhost/${SERVICE_NAME}:dev nginx -t` で構文チェックを行うことが期待される。
 12. 環境変数ファイルの配置:
     - `Makefile` に `env-files-user` / `env-files-root` が定義されている場合、`make -C ${SERVICE_PATH} --always-make env-files-user` / `env-files-root` を root で実行する。
     - `$(SERVICE_PATH)/%.env-user` と `$(SERVICE_PATH)/%.env-root` は `SECRETS_DIR` の同名ファイルからコピーし、`scripts/replace-deploy-vars.sh` でテンプレートを置換する。
 13. systemd 配置:
-- user unit / quadlet / timer: 上記置換済みファイルを前提に `sudo systemctl -M "${SERVICE_USER}@.host" --user daemon-reload` を実行。Podman + SELinux 環境では `Volume=...:Z` / `Volume=...:ro,Z` を忘れずに付けること（context 未付与で起動失敗するため）。
+- user unit / quadlet / timer: 上記置換済みファイルを前提に `sudo systemctl -M "${SERVICE_USER}@.host" --user daemon-reload` を実行。Podman + SELinux 環境ではローカルディスクの bind mount に `Volume=...:Z` / `Volume=...:ro,Z` を付与する。NFS パスは `docs/UsersSetup.md` の方針に従い、`virt_use_nfs=on` を前提に `:z` / `:Z` を付けない（サービスユーザー間で共有する NFS bind mount のため）。
     - root unit（例: 80 → 8080 の socket-proxyd）を持つ場合は `${SERVICE_PATH}/systemd/` にあるファイルを `/etc/systemd/system/${SERVICE_PREFIX}-${SERVICE_NAME}-<name>` というファイル名で配置する。`scripts/replace-deploy-vars.sh` で `@@ROOT_UNIT_PREFIX@@` / `@@SERVICE_PATH@@` / `@@INSTALL_ROOT@@` / `@@CERT_DOMAIN@@` を置換したうえで `chmod 0644 && chown root:root`。`sudo systemctl daemon-reload` を忘れずに。
 14. 再起動・有効化:
     - user unit:

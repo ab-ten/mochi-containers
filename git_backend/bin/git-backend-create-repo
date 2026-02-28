@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+SERVICE_USER="@@SERVICE_USER@@"
+CREATE_REPO_SCRIPT="@@SERVICE_PATH@@/scripts/create-repo.sh"
+NFS_ROOT_VALUE="@@NFS_ROOT@@"
+
+if [ "$(id -un)" = "${SERVICE_USER}" ]; then
+  exec env NFS_ROOT="${NFS_ROOT_VALUE}" "${CREATE_REPO_SCRIPT}" "$@"
+fi
+
+exec sudo -u "${SERVICE_USER}" env NFS_ROOT="${NFS_ROOT_VALUE}" "${CREATE_REPO_SCRIPT}" "$@"

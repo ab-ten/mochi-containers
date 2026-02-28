@@ -65,6 +65,11 @@
 3. `DEPLOY_REQUIRED_VARS` に対する必須チェック
    - 未設定がある場合は標準エラーへ一覧を出力し、exit 1 で終了します。
 
+## サービス横断 root hook での参照時の注意
+- `pre-build-root-hook-%` / `post-build-root-hook-%` は、hook を定義しているサービスの Makefile コンテキストで実行されます。
+- そのため、`deploy-vars.subr` が導出する `ROOT_UNIT_PREFIX` / `SERVICE_HOME` / `USER_UNIT_DIR` などをフック内で参照した場合は、原則として hook 定義側サービスの値を参照します。
+- デプロイ対象サービスの情報が必要な場合は、`deploy-service.sh` が渡す `HOOK_TARGET_SERVICE_NAME` / `HOOK_TARGET_SERVICE_USER` / `HOOK_TARGET_SERVICE_PATH` を使用してください。
+
 ## 運用ルール
 - デプロイ関連の必須変数を追加・削除する場合は、まず `DEPLOY_REQUIRED_VARS` を更新してください。
 - 追加した変数の用途に応じて、以下のドキュメントも同時に更新してください。

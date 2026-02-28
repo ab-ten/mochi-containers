@@ -24,6 +24,9 @@ useradd -u 20014 -g 20014 redmine
 
 groupadd trilium -g 20015
 useradd -u 20015 -g 20015 trilium
+
+groupadd git_backend -g 20016
+useradd -u 20016 -g 20016 git_backend
 ```
 
 nextcloud/www-data ユーザーID、redmine/redmine グループID、trilium/trilium ユーザーID取得（NFS使用時に必要です）
@@ -72,6 +75,9 @@ pw useradd redmine -u 20014 -g redmine -m -s /usr/sbin/nologin
 
 pw groupadd trilium -g 20015
 pw useradd trilium -u 20015 -g trilium -m -s /usr/sbin/nologin
+
+pw groupadd git_backend -g 20016
+pw useradd git_backend -u 20016 -g git_backend -m -s /usr/sbin/nologin
 ```
 
 ### freebsd NFSv4 server NFS 設定
@@ -90,7 +96,15 @@ install -d -o nextcloud -g nextcloud -m 0711 /ztank/nfsv4root/containers/nextclo
 install -d -o 431104 -g nextcloud -m 770 /ztank/nfsv4root/containers/nextcloud/config /ztank/nfsv4root/containers/nextcloud/data /ztank/nfsv4root/containers/nextcloud/apps
 install -d -g 497606 -o redmine -m 2770 /ztank/nfsv4root/containers/redmine
 install -d -o trilium -g 563143 -m 2770 /ztank/nfsv4root/containers/trilium
+install -d -o git_backend -g redmine -m 0751 /ztank/nfsv4root/containers/git_backend
+install -d -o git_backend -g 497606 -m 2750 /ztank/nfsv4root/containers/git_backend/repos
 ```
+
+補足:
+- `git_backend` は上位ディレクトリと実データ格納ディレクトリを分ける 2 段構成にしてください。
+- 例では `/containers/git_backend` を `git_backend:redmine 0751`、`/containers/git_backend/repos` を `git_backend:<redmine_gid_mapped> 2750` としています。
+- この構成により、`git_backend` は書き込み可能なまま、`redmine` は `repos` を read only で参照できます。
+- `redmine` 側の読み取りチェックは `UID_IN_PODMAN:GID_IN_PODMAN` 相当権限で実施されるため、`repos` には `g+rX` が必要です。
 
 ### mochi linux server NFS 設定
 
@@ -134,3 +148,16 @@ systemctl start nfs-idmapd
 ```
 mount <NFS_ROOT>
 ```
+
+### SELinux と NFS bind mount の注意点
+
+- SELinux 有効環境で NFS を Podman volume として mount する場合、`virt_use_nfs` を有効化してください。
+
+```bash
+setsebool -P virt_use_nfs on
+```
+
+- `virt_use_nfs=on` の場合、NFS パスに対する `:z` / `:Z` の指定は不要です。
+- 本リポジトリの NFS bind mount は、`git_backend`・`redmine` など複数のサービスユーザー間で共有する前提です。
+- NFS パスに `:z` / `:Z` を付けると、ラベル処理時に Podman 実行ユーザーが読めないディレクトリに遭遇して起動失敗する場合があります。
+- NFS ボリュームは `:z` / `:Z` を外し、ローカルディスクの bind mount のみ `:z` / `:Z` を使用してください。

@@ -1,0 +1,21 @@
+[Unit]
+Description=git-http-backend container (rootless)
+After=network-online.target
+Wants=network-online.target
+
+[Container]
+Image=localhost/git_backend:dev
+Pull=never
+ContainerName=git_backend
+Volume=@@GIT_BACKEND_SOCK_VOLUME@@:/run/git-backend-fcgi
+# NFS では :Z or :z は不要（virt_use_nfs 設定済みの場合）
+Volume=@@NFS_ROOT@@/git_backend:/var/git:rw
+Environment=FCGIWRAP_CHILDREN=@@FCGIWRAP_CHILDREN@@
+
+[Service]
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=40
+
+[Install]
+WantedBy=default.target

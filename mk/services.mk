@@ -9,24 +9,39 @@ EARLY_STOP ?= No
 ifeq ($(shell id -u),0)
 ifneq ($(strip $(UID_IN_PODMAN)),)
 UID_HOST_MAPPED ?= $(shell ../scripts/print_unshare_id.sh --type uid --user "${SERVICE_USER}" --id "${UID_IN_PODMAN}")
+ifeq ($(strip $(UID_HOST_MAPPED)),)
+$(error UID_HOST_MAPPED is empty. print_unshare_id.sh failed? SERVICE_USER="$(SERVICE_USER)" UID_IN_PODMAN="$(UID_IN_PODMAN)")
+endif
 endif
 ifneq ($(strip $(GID_IN_PODMAN)),)
 GID_HOST_MAPPED ?= $(shell ../scripts/print_unshare_id.sh --type gid --user "${SERVICE_USER}" --id "${GID_IN_PODMAN}")
+ifeq ($(strip $(GID_HOST_MAPPED)),)
+$(error GID_HOST_MAPPED is empty. print_unshare_id.sh failed? SERVICE_USER="$(SERVICE_USER)" GID_IN_PODMAN="$(GID_IN_PODMAN)")
+endif
 endif
 endif
 
 print-uid-gid:
 ifeq ($(shell id -u),0)
+	@echo -n "UID_HOST_MAPPED: "
+	@make --no-print-directory get-uid
+	@echo -n "GID_HOST_MAPPED: "
+	@make --no-print-directory get-gid
+
+get-uid:
 ifneq ($(strip $(UID_IN_PODMAN)),)
-	@echo "UID_HOST_MAPPED: ${UID_HOST_MAPPED}"
+	@echo "${UID_HOST_MAPPED}"
 else
-	@echo "UID_HOST_MAPPED: (UID_IN_PODMAN is not defined)"
+	@echo "(UID_IN_PODMAN is not defined)"
 endif
+
+get-gid:
 ifneq ($(strip $(GID_IN_PODMAN)),)
-	@echo "GID_HOST_MAPPED: ${GID_HOST_MAPPED}"
+	@echo "${GID_HOST_MAPPED}"
 else
-	@echo "GID_HOST_MAPPED: (GID_IN_PODMAN is not defined)"
+	@echo "(GID_IN_PODMAN is not defined)"
 endif
+
 else
 	@echo "print-uid-gid is available only when running as root."
 endif
@@ -75,6 +90,12 @@ replace-files-root:
 	      ../scripts/replace-deploy-vars.sh "$$file"; \
 	  done; \
 	fi
+
+pre-build-root-hook-%:
+	@:
+
+post-build-root-hook-%:
+	@:
 
 $(SERVICE_PATH)/%.env-user: $(SECRETS_DIR)/%.env-user
 	install -o "$(SERVICE_USER)" -g "$(SERVICE_USER)" -m 600 "$<" "$@"

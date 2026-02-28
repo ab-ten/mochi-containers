@@ -12,11 +12,14 @@
 - 配置ルートは `INSTALL_ROOT`（例: `/srv/project/`）。各サービスはその直下に `<service>` ディレクトリを持ち、所有者は `<service>:<service>`。サービスユーザーのホームディレクトリは OS 既定の `/home/<service>` を使う（Podman ストレージが OS の変更に追従できるよう `/srv` 配下にホームを置かない）。
 - 必須コマンド: `sudo`, `rsync`, `podman`, `systemctl`（system と --user の両方）。ユーザー情報確認用に `getent` / `id` なども使用可。
 - --user の systemctl 呼び出しは `sudo systemctl -M "<user>@.host" --user ...` を使う（linger 前提）。
+- SELinux 有効環境で NFS を bind mount する場合は `docs/UsersSetup.md` の方針に従う。`virt_use_nfs=on` を前提に、サービスユーザー間で共有する NFS パスの `Volume=` では `:z` / `:Z` を付けない（ローカルディスクの bind mount のみ `:z` / `:Z` を使用）。
 - 環境差異やオーバーライドは考慮不要。ロールバックは git でタグ/コミットを指定して再デプロイする。
 
 ## 環境変数
 ### サービス固有変数
 - サービス固有の make 変数（例: `TRILIUM_PORT`, `DBFILE_DIR`, `UID_IN_PODMAN` など）は各サービスの `Makefile` で定義して `export` します。ルート `Makefile` では定義しません。
+- 各サービスの `Makefile` では、`SERVICE_NAME` / `SERVICE_USER` / `SERVICE_PATH` などの変数定義とサービス固有ターゲット定義を行った後、ファイル末尾で `include ../mk/services.mk` を記述してください。
+- root 実行時に `UID_IN_PODMAN` / `GID_IN_PODMAN` を定義した場合、`mk/services.mk` は `print_unshare_id.sh` で `UID_HOST_MAPPED` / `GID_HOST_MAPPED` を導出します。導出結果が空文字列になった場合は、`pre-build-root` などで不明瞭な失敗になる前に `make` を即時エラー終了します。
 - 共通の環境変数名リストは `scripts/deploy-vars.subr` で一元管理します。
 - `scripts/deploy-vars.subr` の仕様詳細は `docs/deploy-vars.subr.md` を参照します。
 
@@ -89,6 +92,8 @@
 5) **linger 有効化**: `loginctl enable-linger <service>`。
 6) **pre-build-user / pre-build-root**: Makefile にターゲットがある場合のみ実行。user 側は `INSTALL_ROOT` / `SERVICE_PATH` を環境で渡してサービスユーザー権限、root 側はそのまま。
    - `nginx_rp` の `pre-build-root` は `scripts/collect-nginx-conf.sh` で `SERVICES` に含まれる各サービスの `${INSTALL_ROOT}/<service>/http_<service>.conf` / `https_<service>.conf` を `nginx_rp/container/conf/` に集約し、続けて `scripts/generate-index-html.sh` で `nginx_rp/container/html/index.html` を再生成する。`SERVICES` の並びは `ssl_update` → 各サービス → `nginx_rp` の順にしておく。
+   - サービス横断 root hook（`pre-build-root-hook-%` / `post-build-root-hook-%`）は hook 定義側サービスの Makefile コンテキストで実行される。デプロイ対象サービスの情報が必要な場合は `HOOK_TARGET_SERVICE_*` を使用する。
+   - サービス横断 root hook は `make` の通常更新判定で実行されるため、毎回実行が必要な hook は `.PHONY`（または `FORCE` 依存）を定義する。増分実行を意図する hook は成果物と依存関係を明示して `.PHONY` 化しない。
 7) **replace-files-user / replace-files-root**: `REPLACE_FILES_USER` / `REPLACE_FILES_ROOT` が空でなければ `make replace-files-user` / `make replace-files-root` を実行。
    - `make <service>-deploy` のような単体デプロイでは、`SERVICES` 全体を前提とした関連サービスへの反映は行われない。例えば `make redmine-deploy` のみを実行しても `redmine/https_redmine.conf` は `nginx_rp/container/conf/` に集約されないため、nginx 側への反映が必要な場合は `nginx_rp` を含めて再デプロイする。
 8) **コンテナビルド**: `container/` と `container.*` ディレクトリを検出し、存在するディレクトリごとに `${INSTALL_ROOT}/scripts/container-build.sh` を実行する。`container-build.sh` は `custom-build.sh` があれば優先実行し、なければ共通処理として `podman build` を実行する。`custom-build.sh` が存在して実行不可な場合はエラー終了する。

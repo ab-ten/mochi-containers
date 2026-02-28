@@ -1,0 +1,23 @@
+FROM docker.io/alpine:3.21
+
+ARG GIT_BACKEND_SOCK_GID=4096
+ENV GIT_BACKEND_SOCK_GID=${GIT_BACKEND_SOCK_GID}
+
+# alpine 系は git-daemon が必要
+RUN apk add --no-cache \
+    bash \
+    fcgiwrap \
+    git git-daemon \
+    su-exec
+
+RUN set -eux; \
+    if ! awk -F: -v gid="${GIT_BACKEND_SOCK_GID}" '$3 == gid {found=1} END {exit found ? 0 : 1}' /etc/group; then \
+      addgroup -S -g "${GIT_BACKEND_SOCK_GID}" git_backend_sock; \
+    fi
+
+RUN mkdir -p /var/git/repos /usr/local/libexec \
+    && git_http_backend="$(git --exec-path)/git-http-backend" \
+    && test -x "${git_http_backend}" \
+    && ln -sf "${git_http_backend}" /usr/local/libexec/git-http-backend
+
+CMD ["sh", "-ec", "sock_gid=${GIT_BACKEND_SOCK_GID:-4096}; sock_group=$(awk -F: -v gid=\"${sock_gid}\" '$3 == gid {print $1; exit}' /etc/group); test -n \"${sock_group}\"; install -d -o root -g \"${sock_group}\" -m 2770 /run/git-backend-fcgi; rm -f /run/git-backend-fcgi/git-http-backend.sock; umask 007; exec su-exec root:\"${sock_group}\" fcgiwrap -f -c \"${FCGIWRAP_CHILDREN:-4}\" -s unix:/run/git-backend-fcgi/git-http-backend.sock"]

@@ -9,6 +9,8 @@
 - サービスユーザーは `redmine` です。
 - nginx_rp 経由で公開する前提です。
 - NFS の永続ディレクトリを使用します。
+- `SERVICES` に `git_backend` を含める場合、`NFS_ROOT/git_backend` の read only mount を受け取り、`pre-build-root` で `NFS_ROOT/git_backend/repos` の読み取り可否を検証します。
+- NFS の権限設計は `docs/UsersSetup.md` の 2 段階ディレクトリ構成（上位 + `repos`）を前提とします。
 - HTTPS 証明書は `ssl_update` により `INSTALL_ROOT/ssl_share/certificates` に配置される前提です。
 
 ## 主要パラメータ一覧
@@ -40,8 +42,10 @@ REDMINE_DB_ENCODING=utf8
 ## systemd / quadlet / timer 構成
 - `home/.config/containers/systemd/redmine.container`
   - `PublishPort=127.0.0.1:@@REDMINE_PORT@@:3000`
-  - `Volume=@@NFS_ROOT@@/redmine/files:/usr/src/redmine/files:Z`
+  - `Volume=@@NFS_ROOT@@/redmine/files:/usr/src/redmine/files:Z`（NFS 運用では `docs/UsersSetup.md` の方針に従い `:z` / `:Z` を付けません）
   - `EnvironmentFile=@@SERVICE_PATH@@/redmine.env-user`
+- `git_backend/dropins/systemd/user/containers/redmine/redmine.container.d/git-backend-repos-ro.conf`
+  - `Volume=@@NFS_ROOT@@/git_backend:/var/git:ro`
 
 ## 運用コマンド
 - デプロイ: `make deploy` / `make redmine-deploy`
@@ -56,5 +60,6 @@ REDMINE_DB_ENCODING=utf8
 
 ## トラブルシュート / 注意点
 - NFS の権限が不足する場合は `make -C redmine print-uid-gid` で UID/GID を確認し、`NFS_ROOT/redmine` の所有権と権限を調整してください。
+- `SERVICES` に `git_backend` を含める場合、`pre-build-root` は `UID_IN_PODMAN:GID_IN_PODMAN` 相当権限で `NFS_ROOT/git_backend/repos` の読み取り可否を検証します。失敗時はエラーメッセージに従って group と権限を調整してください。
 - `pre-build-root` で `setpriv` を使用します。`util-linux` をインストールしてください。
-- SELinux 有効環境では bind mount に `:Z` を付与している前提です。
+- SELinux 有効環境で NFS を bind mount する場合は `virt_use_nfs=on` を前提に `:z` / `:Z` を付けません。`redmine` と `git_backend` のようにサービスユーザー間で共有する NFS mount を扱うためです。ローカルディスクの bind mount のみ `:z` / `:Z` を使用してください。

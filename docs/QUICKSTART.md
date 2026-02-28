@@ -20,7 +20,8 @@
 サービスごとに専用ユーザーが必要です。作成例は `docs/UsersSetup.md` を参照してください。
 
 ### 3.2 NFS を使う場合
-`NFS_ROOT` をマウントし、サービスユーザーが所有するディレクトリを作成してください。権限や所有者の不一致はデプロイ時にエラーになります。
+`NFS_ROOT` をマウントし、サービスユーザーが所有するディレクトリを作成してください。権限や所有者の不一致はデプロイ時にエラーになります。  
+`git_backend` と `redmine` を連携する場合は、`docs/UsersSetup.md` の「2 段階ディレクトリ（上位ディレクトリ + repos）」の例に従って group と permission を分けてください。
 
 ### 3.3 `Makefile.local` とシークレット
 環境依存の値は `Makefile.local` に定義します。最低限、以下の項目を確認してください。
@@ -74,7 +75,7 @@ sudo systemctl -M "<service_user>@.host" --user status <unit>
 - `systemctl --user` は `sudo systemctl -M "<user>@.host" --user ...` を使用してください。
 - サービスユーザーのホームは `/home/<service>` 固定です。異なる場合はエラーになります。
 - NFS の所有権がサービスユーザーと一致しない場合は失敗します。
-- SELinux 環境では bind mount に `:Z` / `:ro,Z` が必要です。
+- SELinux 環境では、ローカルディスクの bind mount に `:Z` / `:ro,Z` を付けます。NFS パスは `docs/UsersSetup.md` の方針どおり `virt_use_nfs=on` を前提に `:z` / `:Z` を付けません（サービスユーザー間で共有する NFS bind mount のため）。
 - unit テンプレート内の `@@...@@` 置換漏れがあると起動に失敗します。
 
 ## 8. 次に読む
