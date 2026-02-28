@@ -18,6 +18,8 @@
 ## 環境変数
 ### サービス固有変数
 - サービス固有の make 変数（例: `TRILIUM_PORT`, `DBFILE_DIR`, `UID_IN_PODMAN` など）は各サービスの `Makefile` で定義して `export` します。ルート `Makefile` では定義しません。
+- 各サービスの `Makefile` では、`SERVICE_NAME` / `SERVICE_USER` / `SERVICE_PATH` などの変数定義とサービス固有ターゲット定義を行った後、ファイル末尾で `include ../mk/services.mk` を記述してください。
+- root 実行時に `UID_IN_PODMAN` / `GID_IN_PODMAN` を定義した場合、`mk/services.mk` は `print_unshare_id.sh` で `UID_HOST_MAPPED` / `GID_HOST_MAPPED` を導出します。導出結果が空文字列になった場合は、`pre-build-root` などで不明瞭な失敗になる前に `make` を即時エラー終了します。
 - 共通の環境変数名リストは `scripts/deploy-vars.subr` で一元管理します。
 - `scripts/deploy-vars.subr` の仕様詳細は `docs/deploy-vars.subr.md` を参照します。
 

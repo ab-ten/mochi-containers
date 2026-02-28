@@ -20,6 +20,8 @@
 
 ## サービス固有変数の定義場所
 - サービス固有の make 変数（例: `TRILIUM_PORT`, `DBFILE_DIR` など）は各サービスの `Makefile` で定義して `export` し、ルート `Makefile` では定義しません。
+- 各サービスの `Makefile` では、サービス固有の変数・ターゲットを定義した後、ファイル末尾で `include ../mk/services.mk` を記述してください。
+- root 実行時に `UID_IN_PODMAN` / `GID_IN_PODMAN` を定義するサービスでは、`mk/services.mk` が `print_unshare_id.sh` で導出した `UID_HOST_MAPPED` / `GID_HOST_MAPPED` が空文字列の場合に即時エラー終了します。
 
 ## 必須環境変数
 - 変数名リストは `scripts/deploy-vars.subr` の `DEPLOY_REQUIRED_VARS` で一元管理する。
