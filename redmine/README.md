@@ -62,4 +62,4 @@ REDMINE_DB_ENCODING=utf8
 - NFS の権限が不足する場合は `make -C redmine print-uid-gid` で UID/GID を確認し、`NFS_ROOT/redmine` の所有権と権限を調整してください。
 - `SERVICES` に `git_backend` を含める場合、`pre-build-root` は `UID_IN_PODMAN:GID_IN_PODMAN` 相当権限で `NFS_ROOT/git_backend/repos` の読み取り可否を検証します。失敗時はエラーメッセージに従って group と権限を調整してください。
 - `pre-build-root` で `setpriv` を使用します。`util-linux` をインストールしてください。
-- SELinux 有効環境で NFS を bind mount する場合は `virt_use_nfs=on` を前提に `:z` / `:Z` を付けません。ローカルディスクの bind mount のみ `:z` / `:Z` を使用してください。
+- SELinux 有効環境で NFS を bind mount する場合は `virt_use_nfs=on` を前提に `:z` / `:Z` を付けません。`redmine` と `git_backend` のようにサービスユーザー間で共有する NFS mount を扱うためです。ローカルディスクの bind mount のみ `:z` / `:Z` を使用してください。

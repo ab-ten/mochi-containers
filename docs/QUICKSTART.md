@@ -75,7 +75,7 @@ sudo systemctl -M "<service_user>@.host" --user status <unit>
 - `systemctl --user` は `sudo systemctl -M "<user>@.host" --user ...` を使用してください。
 - サービスユーザーのホームは `/home/<service>` 固定です。異なる場合はエラーになります。
 - NFS の所有権がサービスユーザーと一致しない場合は失敗します。
-- SELinux 環境では、ローカルディスクの bind mount に `:Z` / `:ro,Z` を付けます。NFS パスは `docs/UsersSetup.md` の方針どおり `virt_use_nfs=on` を前提に `:z` / `:Z` を付けません。
+- SELinux 環境では、ローカルディスクの bind mount に `:Z` / `:ro,Z` を付けます。NFS パスは `docs/UsersSetup.md` の方針どおり `virt_use_nfs=on` を前提に `:z` / `:Z` を付けません（サービスユーザー間で共有する NFS bind mount のため）。
 - unit テンプレート内の `@@...@@` 置換漏れがあると起動に失敗します。
 
 ## 8. 次に読む

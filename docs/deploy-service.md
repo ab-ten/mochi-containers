@@ -109,7 +109,7 @@
     - `Makefile` に `env-files-user` / `env-files-root` が定義されている場合、`make -C ${SERVICE_PATH} --always-make env-files-user` / `env-files-root` を root で実行する。
     - `$(SERVICE_PATH)/%.env-user` と `$(SERVICE_PATH)/%.env-root` は `SECRETS_DIR` の同名ファイルからコピーし、`scripts/replace-deploy-vars.sh` でテンプレートを置換する。
 13. systemd 配置:
-- user unit / quadlet / timer: 上記置換済みファイルを前提に `sudo systemctl -M "${SERVICE_USER}@.host" --user daemon-reload` を実行。Podman + SELinux 環境ではローカルディスクの bind mount に `Volume=...:Z` / `Volume=...:ro,Z` を付与する。NFS パスは `docs/UsersSetup.md` の方針に従い、`virt_use_nfs=on` を前提に `:z` / `:Z` を付けない。
+- user unit / quadlet / timer: 上記置換済みファイルを前提に `sudo systemctl -M "${SERVICE_USER}@.host" --user daemon-reload` を実行。Podman + SELinux 環境ではローカルディスクの bind mount に `Volume=...:Z` / `Volume=...:ro,Z` を付与する。NFS パスは `docs/UsersSetup.md` の方針に従い、`virt_use_nfs=on` を前提に `:z` / `:Z` を付けない（サービスユーザー間で共有する NFS bind mount のため）。
     - root unit（例: 80 → 8080 の socket-proxyd）を持つ場合は `${SERVICE_PATH}/systemd/` にあるファイルを `/etc/systemd/system/${SERVICE_PREFIX}-${SERVICE_NAME}-<name>` というファイル名で配置する。`scripts/replace-deploy-vars.sh` で `@@ROOT_UNIT_PREFIX@@` / `@@SERVICE_PATH@@` / `@@INSTALL_ROOT@@` / `@@CERT_DOMAIN@@` を置換したうえで `chmod 0644 && chown root:root`。`sudo systemctl daemon-reload` を忘れずに。
 14. 再起動・有効化:
     - user unit:

@@ -81,4 +81,4 @@ git:$2y$10$exampleexampleexampleexampleexampleexampleexampleexample
   - 例: `htpasswd -nB -C 10 git 'YOUR_PASSWORD'`
 - UNIX domain socket 連携で問題が出た場合は、`git_backend` と `git_backend-nginx` の両サービスログを確認してください。
 - `NFS_ROOT` の bind mount を無効化している場合、リポジトリはコンテナ内の一時領域でのみ参照可能です。永続運用時は bind mount を有効化してください。
-- SELinux 有効環境で NFS を bind mount する場合は `virt_use_nfs=on` を前提に `:z` / `:Z` を付けません。ローカルディスクの bind mount のみ `:z` / `:Z` を使用してください。
+- SELinux 有効環境で NFS を bind mount する場合は `virt_use_nfs=on` を前提に `:z` / `:Z` を付けません。`git_backend` と `redmine` などサービスユーザー間で共有する NFS mount を扱うためです。ローカルディスクの bind mount のみ `:z` / `:Z` を使用してください。

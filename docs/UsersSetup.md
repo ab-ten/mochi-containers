@@ -158,5 +158,6 @@ setsebool -P virt_use_nfs on
 ```
 
 - `virt_use_nfs=on` の場合、NFS パスに対する `:z` / `:Z` の指定は不要です。
+- 本リポジトリの NFS bind mount は、`git_backend`・`redmine` など複数のサービスユーザー間で共有する前提です。
 - NFS パスに `:z` / `:Z` を付けると、ラベル処理時に Podman 実行ユーザーが読めないディレクトリに遭遇して起動失敗する場合があります。
 - NFS ボリュームは `:z` / `:Z` を外し、ローカルディスクの bind mount のみ `:z` / `:Z` を使用してください。
