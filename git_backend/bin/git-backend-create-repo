@@ -5,9 +5,20 @@ set -euo pipefail
 SERVICE_USER="@@SERVICE_USER@@"
 CREATE_REPO_SCRIPT="@@SERVICE_PATH@@/scripts/create-repo.sh"
 NFS_ROOT_VALUE="@@NFS_ROOT@@"
+CERT_DOMAIN_VALUE="@@CERT_DOMAIN@@"
+REPO_NAME="${1-}"
 
-if [ "$(id -un)" = "${SERVICE_USER}" ]; then
-  exec env NFS_ROOT="${NFS_ROOT_VALUE}" "${CREATE_REPO_SCRIPT}" "$@"
+run_create_repo() {
+  if [ "$(id -un)" = "${SERVICE_USER}" ]; then
+    env NFS_ROOT="${NFS_ROOT_VALUE}" "${CREATE_REPO_SCRIPT}" "$@"
+    return
+  fi
+
+  sudo -u "${SERVICE_USER}" env NFS_ROOT="${NFS_ROOT_VALUE}" "${CREATE_REPO_SCRIPT}" "$@"
+}
+
+run_create_repo "$@"
+
+if [ -n "${REPO_NAME}" ]; then
+  echo "repository url: https://git.${CERT_DOMAIN_VALUE}/${REPO_NAME}"
 fi
-
-exec sudo -u "${SERVICE_USER}" env NFS_ROOT="${NFS_ROOT_VALUE}" "${CREATE_REPO_SCRIPT}" "$@"
