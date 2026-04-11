@@ -17,10 +17,10 @@ GIT_BACKEND_SOCK_VOLUME = git_backend_fcgi_sock
 pre-build-root:
 	install -o "${SERVICE_USER}" -g "${GID_HOST_MAPPED}" -m 0640 \
 	  "${SECRETS_DIR}/git_backend.htpasswd" "${SERVICE_PATH}/git_backend.htpasswd"
+	install -d -o "${SERVICE_USER}" -m 0751 "${INSTALL_ROOT}/git_triggers"
 	@case " ${SERVICES} " in \
 		*" redmine "*) \
 			redmine_gid="$$( $(MAKE) -C .. --no-print-directory redmine-get-gid )"; \
-			install -d "${INSTALL_ROOT}/git_triggers"; \
 			install -d "${INSTALL_ROOT}/git_triggers/pending"; \
 			install -d "${INSTALL_ROOT}/git_triggers/processing"; \
 			chown "${SERVICE_USER}:$$redmine_gid" "${INSTALL_ROOT}/git_triggers" "${INSTALL_ROOT}/git_triggers/pending" "${INSTALL_ROOT}/git_triggers/processing"; \
@@ -29,7 +29,6 @@ pre-build-root:
 			chmod 0070 "${INSTALL_ROOT}/git_triggers/processing"; \
 			;; \
 		*) \
-			:; \
 			;; \
 	esac
 

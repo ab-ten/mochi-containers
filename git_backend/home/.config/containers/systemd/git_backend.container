@@ -10,6 +10,7 @@ ContainerName=git_backend
 Volume=@@GIT_BACKEND_SOCK_VOLUME@@:/run/git-backend-fcgi
 # NFS では :Z or :z は不要（virt_use_nfs 設定済みの場合）
 Volume=@@NFS_ROOT@@/git_backend:/var/git:rw
+Volume=@@INSTALL_ROOT@@/git_triggers:/var/git_triggers:rw,z
 Environment=FCGIWRAP_CHILDREN=@@FCGIWRAP_CHILDREN@@
 
 [Service]
