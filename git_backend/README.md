@@ -17,6 +17,7 @@
 - サービスをデプロイする場合は `make deploy` または `make git_backend-deploy` を実行してください。
 - bare リポジトリを追加する場合は `sudo ${INSTALL_ROOT}/bin/git-backend-create-repo <name>.git` を実行してください。
 - リポジトリ名の命名規則だけ確認する場合は `sudo ${INSTALL_ROOT}/bin/git-backend-create-repo -n <name>.git` を実行してください。
+- 既存 bare リポジトリに `post-receive` hook だけ設定する場合は `sudo ${INSTALL_ROOT}/bin/git-backend-create-repo -i <name>.git` を実行してください。
 - リポジトリ作成成功時は、作成先パスに加えて利用するリポジトリ URL が表示されます。
 
 ### 実行例
@@ -30,6 +31,8 @@ repository url: https://git.example.com/sample.git
 - リポジトリ名は `^[A-Za-z0-9][A-Za-z0-9._-]*\.git$` に一致させてください。
 - 先頭文字は英数字とし、使用可能な文字は英数字、`.`、`_`、`-`、末尾の `.git` のみです。
 - `-n` オプションを付けると、bare リポジトリは作成せず命名規則の検証のみを行います。
+- `-i` オプションを付けると、既存 bare リポジトリがある場合は `hooks/post-receive` のみを設定します。リポジトリが存在しない場合は通常どおり bare リポジトリを作成します。
+- `-i` で既存リポジトリへ hook を設定する際、既に別内容の `hooks/post-receive` が存在する場合は上書きせずエラーにします。
 - コマンドは `git_backend` サービスユーザー権限で bare リポジトリを作成します。
 - 表示された URL を clone / remote URL に使用してください。
 - Basic 認証は `git_backend-nginx` 側で実施します。
@@ -90,6 +93,7 @@ git:$2y$10$exampleexampleexampleexampleexampleexampleexampleexample
 - ログ: `sudo journalctl -M "git_backend@.host" --user -u git_backend.service -u git_backend-nginx.service`
 - リポジトリ作成: `sudo ${INSTALL_ROOT}/bin/git-backend-create-repo <name>.git`
 - リポジトリ名検証: `sudo ${INSTALL_ROOT}/bin/git-backend-create-repo -n <name>.git`
+- 既存 repo への hook 設定: `sudo ${INSTALL_ROOT}/bin/git-backend-create-repo -i <name>.git`
 - `make git_backend-deploy` は git_backend 単体のみ更新します。`https_git_backend.conf` / `http_git_backend.conf` の変更を nginx 公開設定へ反映する場合は `make deploy` または `make nginx_rp-deploy` も実行してください。
 
 ## 連携メモ
@@ -104,7 +108,7 @@ git:$2y$10$exampleexampleexampleexampleexampleexampleexampleexample
 - `SERVICES` に `redmine` を含める場合、`pre-build-root` は `make redmine-get-gid` で取得した host 側 GID を group に使用し、`${INSTALL_ROOT}/git_triggers` を 0751、`pending/` を 2770、`processing/` を 0070 で共有向けに調整します。
 - `SERVICES` に `redmine` を含めない場合、`pre-build-root` は `${INSTALL_ROOT}/git_triggers` 下の操作は行いません。将来の hook は `pending/` が writable でない場合に何もしない前提です（一度 redmine 用に pending, processing が作られたら touch が行われます）
 - `post-build-root` は `${INSTALL_ROOT}/bin/git-backend-create-repo` を配置し、`@@NFS_ROOT@@` などのテンプレートを実値へ置換します。
-- `scripts/create-repo.sh` は bare リポジトリ作成時に `hooks/post-receive` を `/usr/local/bin/post-receive-trigger-redmine.sh` への symlink として作成します。
+- `scripts/create-repo.sh` は bare リポジトリ作成時に `hooks/post-receive` を `/usr/local/bin/post-receive-trigger-redmine.sh` への symlink として作成します。`-i` 指定時は既存 bare リポジトリに対して同 symlink のみを設定します。
 - `dropins/systemd/user/containers/redmine/redmine.container.d/git-backend-repos-ro.conf` を配置すると、`redmine` デプロイ時に `NFS_ROOT/git_backend` が `/var/git` へ `read only` で mount されます（リポジトリ実体は `/var/git/repos`）。
 - 補助: 直接実行する場合は `sudo -u git_backend env NFS_ROOT=/srv/nfs/containers /srv/project/git_backend/scripts/create-repo.sh sample.git`
 
