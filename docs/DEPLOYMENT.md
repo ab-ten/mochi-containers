@@ -91,6 +91,7 @@
 4) **所有権統一**: `chown -R <service>:<service> INSTALL_ROOT/<service> /home/<service>`。
 5) **linger 有効化**: `loginctl enable-linger <service>`。
 6) **pre-build-user / pre-build-root**: Makefile にターゲットがある場合のみ実行。user 側は `INSTALL_ROOT` / `SERVICE_PATH` を環境で渡してサービスユーザー権限、root 側はそのまま。
+   - `pre-build-root` はリポジトリ上のサービスディレクトリを `cwd` にして実行するため、同階層や親ディレクトリへの相対参照を利用できる。
    - `nginx_rp` の `pre-build-root` は `scripts/collect-nginx-conf.sh` で `SERVICES` に含まれる各サービスの `${INSTALL_ROOT}/<service>/http_<service>.conf` / `https_<service>.conf` を `nginx_rp/container/conf/` に集約し、続けて `scripts/generate-index-html.sh` で `nginx_rp/container/html/index.html` を再生成する。`SERVICES` の並びは `ssl_update` → 各サービス → `nginx_rp` の順にしておく。
    - サービス横断 root hook（`pre-build-root-hook-%` / `post-build-root-hook-%`）は hook 定義側サービスの Makefile コンテキストで実行される。デプロイ対象サービスの情報が必要な場合は `HOOK_TARGET_SERVICE_*` を使用する。
    - サービス横断 root hook は `make` の通常更新判定で実行されるため、毎回実行が必要な hook は `.PHONY`（または `FORCE` 依存）を定義する。増分実行を意図する hook は成果物と依存関係を明示して `.PHONY` 化しない。
@@ -98,6 +99,11 @@
    - `make <service>-deploy` のような単体デプロイでは、`SERVICES` 全体を前提とした関連サービスへの反映は行われない。例えば `make redmine-deploy` のみを実行しても `redmine/https_redmine.conf` は `nginx_rp/container/conf/` に集約されないため、nginx 側への反映が必要な場合は `nginx_rp` を含めて再デプロイする。
 8) **コンテナビルド**: `container/` と `container.*` ディレクトリを検出し、存在するディレクトリごとに `${INSTALL_ROOT}/scripts/container-build.sh` を実行する。`container-build.sh` は `custom-build.sh` があれば優先実行し、なければ共通処理として `podman build` を実行する。`custom-build.sh` が存在して実行不可な場合はエラー終了する。
 9) **post-build-user / post-build-root**: あれば pre-build と同様に実行。
+   - `ssl_update` の `post-build-root` は `${INSTALL_ROOT}/ssl_share` 配下の共有ディレクトリをローカルディスク上に作成し、証明書共有用の owner/group/mode を調整する。
+   - `post-build-root` は deploy 先の `${SERVICE_PATH}` を `cwd` にして実行するため、リポジトリルート側の相対パスを前提にした処理は置かない。
+   - `git_backend` の `pre-build-root` は `${INSTALL_ROOT}/git_triggers` 配下のディレクトリをローカルディスク上に常に作成する。`SERVICES` に `redmine` を含める場合は共有向け group / mode に調整し、含めない場合は特に何もしない。
+     - 一度でも redmine 込みで deploy した場合は `pending/` にタイムスタンプファイルが touch される。
+     - 過去を含めた deploy 全てにおいて redmine が有効ではなかった場合は pending/ が存在しないので何も行われない。
 10) **systemd 配置**:
    - root unit: `INSTALL_ROOT/<service>/systemd/` のファイルを `/etc/systemd/system/<SERVICE_PREFIX>-<service>-<name>` にコピーし、`replace-deploy-vars.sh` でプレースホルダー置換。0644/root:root にして `systemctl daemon-reload`。
    - user unit / quadlet / timer: 置換済みファイルを前提に `sudo systemctl -M "<user>@.host" --user daemon-reload`。

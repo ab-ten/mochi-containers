@@ -74,7 +74,7 @@
    - 先に `loginctl enable-linger ${SERVICE_USER}` を実行（ユーザーセッションが無くても podman build / systemd --user が動くようにする）。
 8. pre-build フック:
    - `grep -q '^pre-build-user:' Makefile` で存在したら `sudo -u ${SERVICE_USER} INSTALL_ROOT=... NFS_ROOT=... SERVICE_PATH=... make -C "${SERVICE_PATH}" pre-build-user`（`cwd` は INSTALL_ROOT 下の `${SERVICE_PATH}`）。
-   - `grep -q '^pre-build-root:' Makefile` で存在したら root のまま `make pre-build-root`。
+   - `grep -q '^pre-build-root:' Makefile` で存在したら `make -C "${START_DIR}" pre-build-root` を root のまま実行する（`cwd` はリポジトリ上の元ディレクトリ）。
    - `pre-build-root` 実行後、`SERVICES` を巡回して各サービスの `pre-build-root-hook-<デプロイ対象サービス名>` を root で実行する。
    - フック呼び出しは `BASE_REPO_DIR/<service>/Makefile` を対象に実行する。これにより、`Makefile.local` で定義したフックも利用できる。
    - `mk/services.mk` には no-op の `pre-build-root-hook-%` が定義されているため、フック未定義サービスがあってもエラーにはならない。サービス固有の明示ターゲットが定義されている場合は、明示ターゲットが優先される。
@@ -100,6 +100,7 @@
    - `custom-build.sh` がない場合は共通処理として `podman build -t "${CONTAINER_IMAGE}" "${CONTAINER_DIR}"` を行う。
 11. post-build フック:
    - `post-build-user` / `post-build-root` があれば pre-build 同様に実行。`post-build-user` は `sudo -u ${SERVICE_USER} INSTALL_ROOT=... NFS_ROOT=... SERVICE_PATH=... make -C ${SERVICE_PATH} post-build-user` で呼ばれる。
+   - `post-build-root` は `make -C "${SERVICE_PATH}" post-build-root` で実行するため、`cwd` は deploy 先の `${SERVICE_PATH}` になる。リポジトリルートの `../Makefile` や相対パス前提の参照は使用しない。
    - `post-build-root` 実行後、`SERVICES` を巡回して各サービスの `post-build-root-hook-<デプロイ対象サービス名>` を root で実行する。
    - `mk/services.mk` には no-op の `post-build-root-hook-%` が定義されているため、フック未定義サービスがあってもエラーにはならない。
    - post-build 側も pre-build 側と同様に、`SERVICE_*` 系は hook 定義側サービスの値になります。デプロイ対象サービスを参照する場合は `HOOK_TARGET_SERVICE_*` を使用してください。

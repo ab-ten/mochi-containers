@@ -58,4 +58,4 @@ OVERWRITECLIURL=https://@@SERVICE_NAME@@.@@CERT_DOMAIN@@
 
 ## トラブルシュート / 注意点
 - userns に合わせた UID/GID で `HTML_DIR` の所有権を調整する必要があります。
-- UID/GID の確認には `make -C nextcloud print-uid-gid` を使用してください。
+- UID/GID の確認には `make -C nextcloud print-uid-gid` またはリポジトリルートで `make nextcloud-get-uid` / `make nextcloud-get-gid` を使用してください。
