@@ -15,6 +15,7 @@
 ## クイックスタート
 - サービスをデプロイする場合は `make deploy` または `make git_backend-deploy` を実行してください。
 - bare リポジトリを追加する場合は `sudo ${INSTALL_ROOT}/bin/git-backend-create-repo <name>.git` を実行してください。
+- リポジトリ名の命名規則だけ確認する場合は `sudo ${INSTALL_ROOT}/bin/git-backend-create-repo -n <name>.git` を実行してください。
 - リポジトリ作成成功時は、作成先パスに加えて利用するリポジトリ URL が表示されます。
 
 ### 実行例
@@ -25,7 +26,9 @@ repository url: https://git.example.com/sample.git
 ```
 
 ## リポジトリ追加
-- リポジトリ名は末尾を `.git` にしてください。
+- リポジトリ名は `^[A-Za-z0-9][A-Za-z0-9._-]*\.git$` に一致させてください。
+- 先頭文字は英数字とし、使用可能な文字は英数字、`.`、`_`、`-`、末尾の `.git` のみです。
+- `-n` オプションを付けると、bare リポジトリは作成せず命名規則の検証のみを行います。
 - コマンドは `git_backend` サービスユーザー権限で bare リポジトリを作成します。
 - 表示された URL を clone / remote URL に使用してください。
 - Basic 認証は `git_backend-nginx` 側で実施します。
@@ -80,6 +83,7 @@ git:$2y$10$exampleexampleexampleexampleexampleexampleexampleexample
 - 停止: `make stop` / `make git_backend-stop`
 - ログ: `sudo journalctl -M "git_backend@.host" --user -u git_backend.service -u git_backend-nginx.service`
 - リポジトリ作成: `sudo ${INSTALL_ROOT}/bin/git-backend-create-repo <name>.git`
+- リポジトリ名検証: `sudo ${INSTALL_ROOT}/bin/git-backend-create-repo -n <name>.git`
 - `make git_backend-deploy` は git_backend 単体のみ更新します。`https_git_backend.conf` / `http_git_backend.conf` の変更を nginx 公開設定へ反映する場合は `make deploy` または `make nginx_rp-deploy` も実行してください。
 
 ## 連携メモ

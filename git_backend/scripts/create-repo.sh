@@ -2,26 +2,43 @@
 
 set -euo pipefail
 
+usage() {
+  echo "Usage: $0 [-n] <name.git>" >&2
+}
+
+validate_only=0
+while getopts ":n" opt; do
+  case "${opt}" in
+    n)
+      validate_only=1
+      ;;
+    :)
+      usage
+      exit 1
+      ;;
+    \?)
+      usage
+      exit 1
+      ;;
+  esac
+done
+shift "$((OPTIND - 1))"
+
 if [ $# -ne 1 ]; then
-  echo "Usage: $0 <name.git>" >&2
+  usage
   exit 1
 fi
 
 name="$1"
-case "${name}" in
-  *.git) ;;
-  *)
-    echo "create-repo: 末尾 .git のリポジトリ名を指定してください: ${name}" >&2
-    exit 1
-    ;;
-esac
+if ! [[ "${name}" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*\.git$ ]]; then
+  echo "create-repo: リポジトリ名は ^[A-Za-z0-9][A-Za-z0-9._-]*\\.git$ に一致させてください: ${name}" >&2
+  exit 1
+fi
 
-case "${name}" in
-  *..*|*/*)
-    echo "create-repo: 無効なリポジトリ名です: ${name}" >&2
-    exit 1
-    ;;
-esac
+if [ "${validate_only}" -eq 1 ]; then
+  echo "repository name check OK"
+  exit 0
+fi
 
 if [ -z "${NFS_ROOT-}" ]; then
   echo "create-repo: NFS_ROOT が未設定です" >&2
@@ -42,3 +59,4 @@ git init --bare "${repo_path}"
 #git -C "${repo_path}" update-server-info
 
 echo "created: ${repo_path}"
+echo "repository url: https://git.${CERT_DOMAIN}/${name}"
