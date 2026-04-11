@@ -101,7 +101,9 @@
 9) **post-build-user / post-build-root**: あれば pre-build と同様に実行。
    - `ssl_update` の `post-build-root` は `${INSTALL_ROOT}/ssl_share` 配下の共有ディレクトリをローカルディスク上に作成し、証明書共有用の owner/group/mode を調整する。
    - `post-build-root` は deploy 先の `${SERVICE_PATH}` を `cwd` にして実行するため、リポジトリルート側の相対パスを前提にした処理は置かない。
-   - `git_backend` の `pre-build-root` は `${INSTALL_ROOT}/git_triggers` 配下のディレクトリをローカルディスク上に常に作成する。`SERVICES` に `redmine` を含める場合は共有向け group / mode に調整し、含めない場合は `pending/` を非 writable にして hook が実質停止する前提にする。
+   - `git_backend` の `pre-build-root` は `${INSTALL_ROOT}/git_triggers` 配下のディレクトリをローカルディスク上に常に作成する。`SERVICES` に `redmine` を含める場合は共有向け group / mode に調整し、含めない場合は特に何もしない。
+     - 一度でも redmine 込みで deploy した場合は `pending/` にタイムスタンプファイルが touch される。
+     - 過去を含めた deploy 全てにおいて redmine が有効ではなかった場合は pending/ が存在しないので何も行われない。
 10) **systemd 配置**:
    - root unit: `INSTALL_ROOT/<service>/systemd/` のファイルを `/etc/systemd/system/<SERVICE_PREFIX>-<service>-<name>` にコピーし、`replace-deploy-vars.sh` でプレースホルダー置換。0644/root:root にして `systemctl daemon-reload`。
    - user unit / quadlet / timer: 置換済みファイルを前提に `sudo systemctl -M "<user>@.host" --user daemon-reload`。

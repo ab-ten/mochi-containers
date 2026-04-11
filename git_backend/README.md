@@ -110,7 +110,6 @@ git:$2y$10$exampleexampleexampleexampleexampleexampleexampleexample
 - `post-build-root` は `${INSTALL_ROOT}/bin/git-backend-create-repo` を配置し、`@@NFS_ROOT@@` などのテンプレートを実値へ置換します。
 - `scripts/create-repo.sh` は bare リポジトリ作成時に `hooks/post-receive` を `/usr/local/bin/post-receive-trigger-redmine.sh` への symlink として作成します。`-i` 指定時は既存 bare リポジトリに対して同 symlink のみを設定します。
 - `dropins/systemd/user/containers/redmine/redmine.container.d/git-backend-repos-ro.conf` を配置すると、`redmine` デプロイ時に `NFS_ROOT/git_backend` が `/var/git` へ `read only` で mount されます（リポジトリ実体は `/var/git/repos`）。
-- 補助: 直接実行する場合は `sudo -u git_backend env NFS_ROOT=/srv/nfs/containers /srv/project/git_backend/scripts/create-repo.sh sample.git`
 
 ## トラブルシュート / 注意点
 - `SECRETS_DIR/git_backend.htpasswd` は `htpasswd` 形式で作成してください。
