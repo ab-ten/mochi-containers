@@ -10,6 +10,7 @@
 - `nginx_rp` と `ssl_update` が先にデプロイ設定済みであることを前提とします。
 - `nginx_rp` は TLS 終端と reverse proxy のみを担当し、Basic 認証と FastCGI は `git_backend` 側で処理します。
 - bare リポジトリの永続領域として `NFS_ROOT/git_backend/repos` を使用します。
+- `SERVICES` に `redmine` を含める場合、`pre-build-root` は `${INSTALL_ROOT}/git_triggers` をローカルディスク上に作成し、将来の更新トリガ連携に備えます。
 - HTTPS 証明書は `ssl_update` により `INSTALL_ROOT/ssl_share/certificates` に配置される前提です。
 
 ## クイックスタート
@@ -39,6 +40,7 @@ repository url: https://git.example.com/sample.git
 - `FCGIWRAP_CHILDREN`: `fcgiwrap` の子プロセス数（既定: 4）
 - `GIT_BACKEND_SOCK_VOLUME`: `fcgiwrap` と `git_backend-nginx` が共有する Podman volume 名（既定: `git_backend_fcgi_sock`）
 - `NFS_ROOT/git_backend/repos`: bare リポジトリ永続領域
+- `INSTALL_ROOT/git_triggers`: `redmine` 連携用のローカル共有ディレクトリ
 - `CERT_DOMAIN`: vhost 名に使用します。
 - `MAP_LOCAL_ADDRESS`: `nginx_rp` の `proxy_pass` 接続先に使用します。
 
@@ -49,6 +51,7 @@ repository url: https://git.example.com/sample.git
 - `http_git_backend.conf`: HTTP から HTTPS へのリダイレクト設定
 - `https_git_backend.conf`: `nginx_rp` 側の reverse proxy vhost 設定（`replace-files-user` で置換）
 - `NFS_ROOT/git_backend`: `/var/git` への bind mount（NFS サーバー準備完了までは quadlet で無効化可能）
+- `INSTALL_ROOT/git_triggers`: `redmine` と共有するローカルディレクトリ（`pending/`, `processing/` を含む）
 - `home/.config/containers/systemd/git_backend.container`: `fcgiwrap` 用 rootless quadlet 定義
 - `home/.config/containers/systemd/git_backend-nginx.container`: 認証プロキシ用 rootless quadlet 定義
 - `dropins/systemd/user/containers/redmine/redmine.container.d/git-backend-repos-ro.conf`: `redmine` コンテナへ `NFS_ROOT/git_backend` を read only で配布する drop-in
@@ -93,6 +96,7 @@ git:$2y$10$exampleexampleexampleexampleexampleexampleexampleexample
 - `container/Containerfile` は `git_backend_sock`（既定 GID: 4096）を解決し、`/run/git-backend-fcgi` を `root:<socket-group>` + `2770` で準備したうえで `umask 007` で `fcgiwrap` を起動します。
 - `container.nginx/Containerfile` は nginx ユーザーを `git_backend_sock`（既定 GID: 4096）へ追加し、UNIX socket への group write 接続を許可します。
 - `post-build-user` は `GIT_BACKEND_SOCK_VOLUME` が存在しない場合に自動作成します。
+- `pre-build-root` は `SERVICES` に `redmine` を含める場合、`make redmine-get-gid` で取得した host 側 GID を group に使用し、`${INSTALL_ROOT}/git_triggers` を 0751、`pending/` を 2770、`processing/` を 0070 で作成・調整します。
 - `post-build-root` は `${INSTALL_ROOT}/bin/git-backend-create-repo` を配置し、`@@NFS_ROOT@@` などのテンプレートを実値へ置換します。
 - `dropins/systemd/user/containers/redmine/redmine.container.d/git-backend-repos-ro.conf` を配置すると、`redmine` デプロイ時に `NFS_ROOT/git_backend` が `/var/git` へ `read only` で mount されます（リポジトリ実体は `/var/git/repos`）。
 - 補助: 直接実行する場合は `sudo -u git_backend env NFS_ROOT=/srv/nfs/containers /srv/project/git_backend/scripts/create-repo.sh sample.git`
