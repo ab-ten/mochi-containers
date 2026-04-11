@@ -47,6 +47,7 @@ fi
 
 repo_root="${NFS_ROOT%/}/git_backend/repos"
 repo_path="${repo_root}/${name}"
+post_receive_hook="${repo_path}/hooks/post-receive"
 
 umask 027
 
@@ -56,6 +57,7 @@ if [ -e "${repo_path}" ]; then
 fi
 
 git init --bare "${repo_path}"
+ln -s /usr/local/bin/post-receive-trigger-redmine.sh "${post_receive_hook}"
 #git -C "${repo_path}" update-server-info
 
 echo "created: ${repo_path}"

@@ -39,6 +39,7 @@ post-build-user:
 
 post-build-root:
 	install -d -o root -g root -m 0755 "${INSTALL_ROOT}/bin"
+	chmod 755 "${SERVICE_PATH}/container/"*.sh
 	"${INSTALL_ROOT}/scripts/replace-deploy-vars.sh" \
 	  "${SERVICE_PATH}/bin/git-backend-create-repo"
 	install -o root -g root -m 0755 \

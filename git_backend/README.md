@@ -46,6 +46,7 @@ repository url: https://git.example.com/sample.git
 
 ## ディレクトリ・ボリューム構成
 - `container/Containerfile`: `fcgiwrap + git-http-backend` イメージのビルド定義（UNIX domain socket 待受）
+- `container/post-receive-trigger-redmine.sh`: bare リポジトリの `post-receive` hook から呼び出す更新トリガスクリプト
 - `container.nginx/Containerfile`: Basic 認証付き reverse proxy 用 nginx イメージのビルド定義
 - `container.nginx/default.conf`: `git_backend-nginx` 内の FastCGI 設定
 - `http_git_backend.conf`: HTTP から HTTPS へのリダイレクト設定
@@ -73,6 +74,7 @@ git:$2y$10$exampleexampleexampleexampleexampleexampleexampleexample
 - `home/.config/containers/systemd/git_backend.container`
   - `Volume=@@GIT_BACKEND_SOCK_VOLUME@@:/run/git-backend-fcgi`
   - `Volume=@@NFS_ROOT@@/git_backend:/var/git:rw`（NFS 用。`docs/UsersSetup.md` の方針に従い `:z` / `:Z` は付けません）
+  - `Volume=@@SERVICE_PATH@@/container/post-receive-trigger-redmine.sh:/usr/local/bin/post-receive-trigger-redmine.sh:ro,Z`
   - `Volume=@@INSTALL_ROOT@@/git_triggers:/var/git_triggers:rw,z`
   - `Environment=FCGIWRAP_CHILDREN=@@FCGIWRAP_CHILDREN@@`
 - `home/.config/containers/systemd/git_backend-nginx.container`
@@ -97,10 +99,12 @@ git:$2y$10$exampleexampleexampleexampleexampleexampleexampleexample
 - `container/Containerfile` は `git_backend_sock`（既定 GID: 4096）を解決し、`/run/git-backend-fcgi` を `root:<socket-group>` + `2770` で準備したうえで `umask 007` で `fcgiwrap` を起動します。
 - `container.nginx/Containerfile` は nginx ユーザーを `git_backend_sock`（既定 GID: 4096）へ追加し、UNIX socket への group write 接続を許可します。
 - `post-build-user` は `GIT_BACKEND_SOCK_VOLUME` が存在しない場合に自動作成します。
+- `post-build-root` は `${SERVICE_PATH}/container/*.sh` に実行権限を付与します。
 - `pre-build-root` は `${INSTALL_ROOT}/git_triggers` を常に作成します。
 - `SERVICES` に `redmine` を含める場合、`pre-build-root` は `make redmine-get-gid` で取得した host 側 GID を group に使用し、`${INSTALL_ROOT}/git_triggers` を 0751、`pending/` を 2770、`processing/` を 0070 で共有向けに調整します。
 - `SERVICES` に `redmine` を含めない場合、`pre-build-root` は `${INSTALL_ROOT}/git_triggers` 下の操作は行いません。将来の hook は `pending/` が writable でない場合に何もしない前提です（一度 redmine 用に pending, processing が作られたら touch が行われます）
 - `post-build-root` は `${INSTALL_ROOT}/bin/git-backend-create-repo` を配置し、`@@NFS_ROOT@@` などのテンプレートを実値へ置換します。
+- `scripts/create-repo.sh` は bare リポジトリ作成時に `hooks/post-receive` を `/usr/local/bin/post-receive-trigger-redmine.sh` への symlink として作成します。
 - `dropins/systemd/user/containers/redmine/redmine.container.d/git-backend-repos-ro.conf` を配置すると、`redmine` デプロイ時に `NFS_ROOT/git_backend` が `/var/git` へ `read only` で mount されます（リポジトリ実体は `/var/git/repos`）。
 - 補助: 直接実行する場合は `sudo -u git_backend env NFS_ROOT=/srv/nfs/containers /srv/project/git_backend/scripts/create-repo.sh sample.git`
 
