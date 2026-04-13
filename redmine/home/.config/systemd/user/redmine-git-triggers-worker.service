@@ -1,9 +1,10 @@
 [Unit]
 Description=Run Redmine git trigger worker
-#NOSTART
 After=redmine.service
 Requires=redmine.service
 
 [Service]
 Type=oneshot
 ExecStart=/usr/bin/podman exec redmine /usr/local/lib/git_triggers/worker.rb -v
+
+#NOSTART

@@ -43,6 +43,7 @@
 - `id` / `stat`（所有者確認に使用可）
 - `sudo`（NFS ディレクトリ作成をサービスユーザー権限で行うため）
 - `install`（ディレクトリ作成）
+- `find` / `sed` / `grep` / `sort`（systemd unit の参照関係検証に使用）
 
 ## 実装フロー（案）
 1. `set -euo pipefail`。`err()`/`info()` の簡易ログ関数を用意し、`err` は即 exit 1。
@@ -62,7 +63,13 @@
    - `NFS_DIR="${NFS_ROOT}/${SERVICE_NAME}"` を決定。
    - 共有側で `NFS_ROOT` が `root:svc_nfs_clients` + `770` になっている前提。root では chown に失敗するため、`sudo -u "${SERVICE_USER}" install -d -m 0700 "${NFS_DIR}"` でサービスユーザー権限のまま作成する。
    - 既存なら `stat -c '%u %g'` で所有者をチェックし、サービスユーザーの UID/GID と一致しなければエラー終了（root では修正できない想定なので再作成を促すメッセージを出す）。
-7. 最終確認ログを出して終了（例: `echo "pre-deploy-check: ok for ${SERVICE_NAME}"`）。
+7. systemd trigger unit 検証:
+   - `scripts/check-systemd-trigger-services.sh` を呼び出し、`home/.config/systemd/user/`、`home/.config/containers/systemd/`、`systemd/` 配下の `*.path` / `*.socket` / `*.timer` を走査する。
+   - `*.path` / `*.timer` は `Unit=`、`*.socket` は `Service=` を優先し、未指定時は同 basename の `.service` を既定値として扱う。
+   - 参照先 `.service` が見つからない場合はエラーにする。
+   - `home/.config/systemd/user/` 配下の trigger unit が参照する `.service` が同ディレクトリに無く、対応する `home/.config/containers/systemd/<basename>.container` がある場合は、その quadlet を参照先として扱う。
+   - 参照先 unit に `#NOSTART` が含まれない場合はエラーにする。
+8. 最終確認ログを出して終了（例: `echo "pre-deploy-check: ok for ${SERVICE_NAME}"`）。
 
 ## エラー扱いと戻り値
 - どこか一つでも不整合があれば標準エラーに理由を出し、exit 1。
@@ -70,4 +77,4 @@
 
 ## 動作確認の目安
 - 正常系: 既存ユーザー `nginx_rp` の HOME が一致し、`${NFS_ROOT}/nginx_rp` が無い状態で作成されること。
-- 異常系: `SERVICE_USER` に存在しないユーザーを渡した際に「ユーザー無し」で落ちること、HOME がズレている場合に検知すること、NFS ディレクトリの所有権がサービスユーザーと一致しない場合に検知すること。
+- 異常系: `SERVICE_USER` に存在しないユーザーを渡した際に「ユーザー無し」で落ちること、HOME がズレている場合に検知すること、NFS ディレクトリの所有権がサービスユーザーと一致しない場合に検知すること、`*.path` / `*.socket` / `*.timer` が参照する service unit に `#NOSTART` が無い場合に検知すること。
