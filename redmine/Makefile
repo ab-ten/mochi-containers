@@ -64,7 +64,7 @@ pre-build-root:
 	esac
 
 post-build-root:
-	chmod 755 "${SERVICE_PATH}/container/git_triggers/"*.rb
+	chmod 755 "${SERVICE_PATH}/container/git_triggers/"*.rb "${SERVICE_PATH}/container/git_triggers/"*.sh
 
 
 endif

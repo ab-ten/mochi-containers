@@ -2,6 +2,7 @@
 # frozen_string_literal: true
 
 require "optparse"
+require_relative "failure_notifier"
 
 module GitTriggers
   class Worker
@@ -11,11 +12,16 @@ module GitTriggers
     RUN_BATCH_SCRIPT = "/usr/local/lib/git_triggers/run_batch.rb"
     RAILS_ROOT = "/usr/src/redmine"
     PAUSE_SECONDS = 30
+    TEST_FAILURE_REPO_NAME = "test-notification"
+    TEST_FAILURE_REPO_PATH = "/var/git/repos/test-notification.git"
+    TEST_FAILURE_ERROR_MESSAGE = "test failure notification requested by worker -f"
+    TEST_FAILURE_ERROR_CLASS = "GitTriggers::TestFailure"
 
     def initialize(argv)
       @argv = argv
       @verbose_level = 0
       @pause_only = false
+      @test_failure_only = false
     end
 
     def run
@@ -34,6 +40,18 @@ module GitTriggers
           info("pause mode enabled; sleeping #{PAUSE_SECONDS} seconds")
           sleep(PAUSE_SECONDS)
           return 0
+        end
+
+        if @test_failure_only
+          info("test failure notification requested")
+          notification_ok = GitTriggers::FailureNotifier.notify(
+            repo_name: TEST_FAILURE_REPO_NAME,
+            repo_path: TEST_FAILURE_REPO_PATH,
+            error_message: TEST_FAILURE_ERROR_MESSAGE,
+            error_class: TEST_FAILURE_ERROR_CLASS,
+            logger: method(:log_notifier)
+          )
+          return notification_ok ? 0 : 1
         end
 
         claimed = claim_pending_entries
@@ -59,7 +77,7 @@ module GitTriggers
 
     def parse_options!
       parser = OptionParser.new do |opts|
-        opts.banner = "Usage: worker.rb [-v|-vv|-p]"
+        opts.banner = "Usage: worker.rb [-v|-vv|-p|-f]"
 
         opts.on("-v", "Show progress logs") do
           @verbose_level += 1
@@ -67,6 +85,10 @@ module GitTriggers
 
         opts.on("-p", "Acquire lock, sleep 30 seconds, and exit") do
           @pause_only = true
+        end
+
+        opts.on("-f", "Send a test failure notification and exit") do
+          @test_failure_only = true
         end
       end
 
@@ -165,6 +187,15 @@ module GitTriggers
 
     def error(message)
       log("ERROR", message)
+    end
+
+    def log_notifier(level, message)
+      case level
+      when :debug
+        debug(message)
+      else
+        error(message)
+      end
     end
 
     def log(level, message)

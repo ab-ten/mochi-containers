@@ -7,15 +7,14 @@ USER root
 
 # git が無いイメージの場合に備えて入れておく（入っていれば実質ノーコスト）
 RUN apt-get update \
-  && apt-get install -y --no-install-recommends git ca-certificates \
+  && apt-get install -y --no-install-recommends git ca-certificates curl \
   && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /usr/src/redmine
 
 RUN set -eu; \
   mkdir -p -m 755 /var/git; \
-  install -d -o redmine -g redmine -m 775 /var/git_lock; \
-  install -d -o redmine -g redmine -m 775 /var/git_triggers; \
+  install -d -o redmine -g redmine -m 775 /var/git_lock /var/git_triggers; \
   rm -rf /tmp/redmine_wiki_page_tree; \
   mkdir -p /tmp/redmine_wiki_page_tree; \
   cd /tmp/redmine_wiki_page_tree; \

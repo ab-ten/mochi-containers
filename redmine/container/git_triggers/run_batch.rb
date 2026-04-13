@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require_relative "failure_notifier"
 require_relative "redmine_repo_tools"
 
 module GitTriggers
@@ -9,7 +10,6 @@ module GitTriggers
     def initialize(repo_names)
       @repo_names = repo_names.uniq
       @verbose_level = ENV.fetch("GIT_TRIGGERS_VERBOSE_LEVEL", "0").to_i
-      @failure_hook = ENV.fetch("GIT_TRIGGERS_FAILURE_HOOK", "").strip
       @had_error = false
     end
 
@@ -39,24 +39,13 @@ module GitTriggers
       @had_error = true
       error("failed repository #{repo_name}: #{e.class}: #{e.message}")
       debug("backtrace for #{repo_name}: #{Array(e.backtrace).join(' | ')}")
-      run_failure_hook(repo_name, repo_path, e)
-    end
-
-    def run_failure_hook(repo_name, repo_path, error)
-      return if @failure_hook.empty?
-
-      env = {
-        "GIT_TRIGGERS_REPO_NAME" => repo_name,
-        "GIT_TRIGGERS_REPO_PATH" => repo_path,
-        "GIT_TRIGGERS_ERROR_MESSAGE" => error.message.to_s,
-        "GIT_TRIGGERS_ERROR_CLASS" => error.class.to_s
-      }
-
-      return if system(env, @failure_hook, repo_name, error.message.to_s)
-
-      error("failure hook failed for #{repo_name}: #{@failure_hook}")
-    rescue StandardError => e
-      error("failure hook raised for #{repo_name}: #{e.class}: #{e.message}")
+      GitTriggers::FailureNotifier.notify(
+        repo_name: repo_name,
+        repo_path: repo_path,
+        error_message: e.message,
+        error_class: e.class,
+        logger: method(:log_notifier)
+      )
     end
 
     def info(message)
@@ -73,6 +62,15 @@ module GitTriggers
 
     def error(message)
       warn("git-triggers-runner ERROR: #{message}")
+    end
+
+    def log_notifier(level, message)
+      case level
+      when :debug
+        debug(message)
+      else
+        error(message)
+      end
     end
   end
 end

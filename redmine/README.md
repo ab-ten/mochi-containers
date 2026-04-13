@@ -25,6 +25,8 @@
 - `container/git_triggers/worker.rb`: `pending/` キューを取得し、`bin/rails runner` を一括起動する worker
 - `container/git_triggers/run_batch.rb`: queue から取得した複数 repository の changeset 更新を一括実行する runner
 - `container/git_triggers/redmine_repo_tools.rb`: repository path から Redmine の repository を特定し、changeset 更新を呼ぶ helper
+- `container/git_triggers/failure_notifier.rb`: 失敗通知 hook の実行処理を共通化する notifier
+- `container/git_triggers/notify-slack.sh`: changeset 更新失敗時に Slack API へ通知する hook
 - `https_redmine.conf`: nginx vhost 設定（`replace-files-user` で置換）
 - `NFS_ROOT/redmine/files`: `/usr/src/redmine/files` に bind mount
 - `home/.config/containers/systemd/redmine.container`: rootless quadlet 定義
@@ -41,7 +43,14 @@ REDMINE_DB_USERNAME=redmine
 REDMINE_DB_PASSWORD=<postgres-passwd>
 REDMINE_DB_ENCODING=utf8
 RAILS_ENV=production
-GIT_TRIGGERS_FAILURE_HOOK=
+```
+
+Slack 通知を有効にする場合のみ、以下を追加してください。
+
+```env
+GIT_TRIGGERS_FAILURE_HOOK=/usr/local/lib/git_triggers/notify-slack.sh
+SLACK_TOKEN=<slack-bot-token>
+SLACK_CHANNEL=<channel-id>
 ```
 
 ## systemd / quadlet / timer 構成
@@ -70,6 +79,7 @@ GIT_TRIGGERS_FAILURE_HOOK=
 - worker 手動実行: `podman exec redmine /usr/local/lib/git_triggers/worker.rb -v`
 - worker 詳細ログ: `podman exec redmine /usr/local/lib/git_triggers/worker.rb -vv`
 - worker 排他確認: `podman exec redmine /usr/local/lib/git_triggers/worker.rb -p`
+- worker 通知テスト: `podman exec redmine /usr/local/lib/git_triggers/worker.rb -f`
 - `make redmine-deploy` は redmine 単体のみ更新します。`https_redmine.conf` の変更を nginx 公開設定へ反映する場合は `make deploy` または `make nginx_rp-deploy` も実行してください。
 
 ## 連携メモ
@@ -81,6 +91,8 @@ GIT_TRIGGERS_FAILURE_HOOK=
 - `redmine-git-triggers-worker.path` は host 側 `@@INSTALL_ROOT@@/git_triggers/pending` が非空になると oneshot worker service を起動します。
 - `processing/` に残った queue は自動回復しません。必要に応じて内容を確認し、手動で `pending/` へ戻して再投入してください。
 - `GIT_TRIGGERS_FAILURE_HOOK` が空でない場合、changeset 更新失敗時に hook を `repo_name` と `error_message` を引数にして実行します。追加で `GIT_TRIGGERS_REPO_NAME`、`GIT_TRIGGERS_REPO_PATH`、`GIT_TRIGGERS_ERROR_MESSAGE`、`GIT_TRIGGERS_ERROR_CLASS` を環境変数として渡します。
+- `worker.rb -f` は queue 処理を行わず、実運用と同じ notifier 経路でテスト用失敗通知を 1 回送信します。
+- `container/git_triggers/` はコンテナへ `/usr/local/lib/git_triggers` として bind mount されるため、`notify-slack.sh` は追加の unit 変更なしで hook に指定できます。
 
 ## トラブルシュート / 注意点
 - NFS の権限が不足する場合は `make -C redmine print-uid-gid` またはリポジトリルートで `make redmine-get-uid` / `make redmine-get-gid` を実行して UID/GID を確認し、`NFS_ROOT/redmine` の所有権と権限を調整してください。
