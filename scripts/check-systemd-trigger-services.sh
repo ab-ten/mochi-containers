@@ -123,8 +123,10 @@ validate_trigger_unit() {
     err "${trigger_unit}: 参照先 service が見つかりません: ${service_unit_name}"
   fi
 
-  if ! grep -q '#NOSTART' "${target_file}"; then
-    err "${trigger_unit}: 参照先 ${target_file} に #NOSTART が必要です"
+  # Trigger unit 配下の参照先 service には通常 #NOSTART を要求します。
+  # ただし、deploy 直後の起動も許可したい unit は #FORCESTART で例外扱いにします。
+  if ! grep -q '^#NOSTART' "${target_file}" && ! grep -q '^#FORCESTART' "${target_file}"; then
+    err "${trigger_unit}: 参照先 ${target_file} に #NOSTART または #FORCESTART が必要です"
   fi
 
   info "ok: ${trigger_unit} -> ${target_file}"

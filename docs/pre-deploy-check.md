@@ -68,7 +68,8 @@
    - `*.path` / `*.timer` は `Unit=`、`*.socket` は `Service=` を優先し、未指定時は同 basename の `.service` を既定値として扱う。
    - 参照先 `.service` が見つからない場合はエラーにする。
    - `home/.config/systemd/user/` 配下の trigger unit が参照する `.service` が同ディレクトリに無く、対応する `home/.config/containers/systemd/<basename>.container` がある場合は、その quadlet を参照先として扱う。
-   - 参照先 unit に `#NOSTART` が含まれない場合はエラーにする。
+   - 参照先 unit には原則として `#NOSTART` が必要です。
+   - ただし、timer 等からの通常起動とは別に、deploy 直後の起動も許可したい unit は `#FORCESTART` を付けることで例外的に許可します。
 8. 最終確認ログを出して終了（例: `echo "pre-deploy-check: ok for ${SERVICE_NAME}"`）。
 
 ## エラー扱いと戻り値
@@ -77,4 +78,4 @@
 
 ## 動作確認の目安
 - 正常系: 既存ユーザー `nginx_rp` の HOME が一致し、`${NFS_ROOT}/nginx_rp` が無い状態で作成されること。
-- 異常系: `SERVICE_USER` に存在しないユーザーを渡した際に「ユーザー無し」で落ちること、HOME がズレている場合に検知すること、NFS ディレクトリの所有権がサービスユーザーと一致しない場合に検知すること、`*.path` / `*.socket` / `*.timer` が参照する service unit に `#NOSTART` が無い場合に検知すること。
+- 異常系: `SERVICE_USER` に存在しないユーザーを渡した際に「ユーザー無し」で落ちること、HOME がズレている場合に検知すること、NFS ディレクトリの所有権がサービスユーザーと一致しない場合に検知すること、`*.path` / `*.socket` / `*.timer` が参照する service unit に `#NOSTART` / `#FORCESTART` のいずれも無い場合に検知すること。
