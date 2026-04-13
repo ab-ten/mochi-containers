@@ -50,6 +50,12 @@ GIT_TRIGGERS_FAILURE_HOOK=
   - `Volume=@@NFS_ROOT@@/redmine/files:/usr/src/redmine/files:Z`（NFS 運用では `docs/UsersSetup.md` の方針に従い `:z` / `:Z` を付けません）
   - `Volume=@@SERVICE_PATH@@/container/git_triggers:/usr/local/lib/git_triggers:ro,Z`
   - `EnvironmentFile=@@SERVICE_PATH@@/redmine.env-user`
+- `home/.config/systemd/user/redmine-git-triggers-worker.service`
+  - `Type=oneshot`
+  - `ExecStart=/usr/bin/podman exec redmine /usr/local/lib/git_triggers/worker.rb -v`
+- `home/.config/systemd/user/redmine-git-triggers-worker.path`
+  - `DirectoryNotEmpty=@@INSTALL_ROOT@@/git_triggers/pending`
+  - `Unit=redmine-git-triggers-worker.service`
 - `git_backend/dropins/systemd/user/containers/redmine/redmine.container.d/git-backend-repos-ro.conf`
   - `Volume=@@NFS_ROOT@@/git_backend:/var/git:ro`
 - `git_backend/dropins/systemd/user/containers/redmine/redmine.container.d/git-triggers-rw.conf`
@@ -59,6 +65,8 @@ GIT_TRIGGERS_FAILURE_HOOK=
 - デプロイ: `make deploy` / `make redmine-deploy`
 - 停止: `make stop` / `make redmine-stop`
 - ログ: `sudo journalctl -M "redmine@.host" --user -u redmine.service`
+- worker service ログ: `sudo journalctl -M "redmine@.host" --user -u redmine-git-triggers-worker.service`
+- path unit 状態: `sudo systemctl -M "redmine@.host" --user status redmine-git-triggers-worker.path`
 - worker 手動実行: `podman exec redmine /usr/local/lib/git_triggers/worker.rb -v`
 - worker 詳細ログ: `podman exec redmine /usr/local/lib/git_triggers/worker.rb -vv`
 - worker 排他確認: `podman exec redmine /usr/local/lib/git_triggers/worker.rb -p`
@@ -70,6 +78,7 @@ GIT_TRIGGERS_FAILURE_HOOK=
 - プラグイン更新は `container/Containerfile` の `WIKI_PAGE_TREE_SHA` を更新して再ビルドします。
 - `git_backend` の post-receive hook は `/var/git_triggers/pending/<repo_name>` を作成します。
 - worker は `pending/` から queue を `processing/` へ移動して取得し、今回取得した repository のみを 1 回の `bin/rails runner` で一括更新します。
+- `redmine-git-triggers-worker.path` は host 側 `@@INSTALL_ROOT@@/git_triggers/pending` が非空になると oneshot worker service を起動します。
 - `processing/` に残った queue は自動回復しません。必要に応じて内容を確認し、手動で `pending/` へ戻して再投入してください。
 - `GIT_TRIGGERS_FAILURE_HOOK` が空でない場合、changeset 更新失敗時に hook を `repo_name` と `error_message` を引数にして実行します。追加で `GIT_TRIGGERS_REPO_NAME`、`GIT_TRIGGERS_REPO_PATH`、`GIT_TRIGGERS_ERROR_MESSAGE`、`GIT_TRIGGERS_ERROR_CLASS` を環境変数として渡します。
 
