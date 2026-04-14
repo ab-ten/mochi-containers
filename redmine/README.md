@@ -27,6 +27,7 @@
 - `container/git_triggers/redmine_repo_tools.rb`: repository path から Redmine の repository を特定し、changeset 更新を呼ぶ helper
 - `container/git_triggers/failure_notifier.rb`: 失敗通知 hook の実行処理を共通化する notifier
 - `container/git_triggers/notify-slack.sh`: changeset 更新失敗時に Slack API へ通知する hook
+- `container/git_triggers/notify-systemd-failure-slack.sh`: systemd `OnFailure=` から Slack API へ通知する hook
 - `https_redmine.conf`: nginx vhost 設定（`replace-files-user` で置換）
 - `NFS_ROOT/redmine/files`: `/usr/src/redmine/files` に bind mount
 - `home/.config/containers/systemd/redmine.container`: rootless quadlet 定義
@@ -53,6 +54,8 @@ SLACK_TOKEN=<slack-bot-token>
 SLACK_CHANNEL=<channel-id>
 ```
 
+systemd `OnFailure=` 通知のみを使う場合は、`SLACK_TOKEN` と `SLACK_CHANNEL` だけで動作します。
+
 ## systemd / quadlet / timer 構成
 - `home/.config/containers/systemd/redmine.container`
   - `PublishPort=127.0.0.1:@@REDMINE_PORT@@:3000`
@@ -65,6 +68,14 @@ SLACK_CHANNEL=<channel-id>
 - `home/.config/systemd/user/redmine-git-triggers-worker.path`
   - `DirectoryNotEmpty=@@INSTALL_ROOT@@/git_triggers/pending`
   - `Unit=redmine-git-triggers-worker.service`
+- `home/.config/systemd/user/redmine-git-triggers-worker-failure-notify.service`
+  - `Type=oneshot`
+  - `EnvironmentFile=@@SERVICE_PATH@@/redmine.env-user`
+  - `ExecStart=@@SERVICE_PATH@@/container/git_triggers/notify-systemd-failure-slack.sh redmine-git-triggers-worker.service`
+  - `#NOSTART` により deploy 時の自動起動を抑止
+- `dropins/systemd/user/systemd/redmine/redmine-git-triggers-worker.service.d/user-onfailure-slack.conf.sample`
+  - `OnFailure=redmine-git-triggers-worker-failure-notify.service`
+  - 利用時は sample を `user-*.conf` にコピーして有効化
 - `git_backend/dropins/systemd/user/containers/redmine/redmine.container.d/git-backend-repos-ro.conf`
   - `Volume=@@NFS_ROOT@@/git_backend:/var/git:ro`
 - `git_backend/dropins/systemd/user/containers/redmine/redmine.container.d/git-triggers-rw.conf`
@@ -76,6 +87,8 @@ SLACK_CHANNEL=<channel-id>
 - ログ: `sudo journalctl -M "redmine@.host" --user -u redmine.service`
 - worker service ログ: `sudo journalctl -M "redmine@.host" --user -u redmine-git-triggers-worker.service`
 - path unit 状態: `sudo systemctl -M "redmine@.host" --user status redmine-git-triggers-worker.path`
+- OnFailure 通知 service ログ: `sudo journalctl -M "redmine@.host" --user -u redmine-git-triggers-worker-failure-notify.service`
+- OnFailure 通知テスト: `redmine-git-triggers-worker.service` の `ExecStart` を一時的に `/usr/bin/false` へ変更して `make redmine-deploy` を実行し、`sudo systemctl -M "redmine@.host" --user start redmine-git-triggers-worker.service` で失敗通知を確認します。確認後は `ExecStart` を元に戻して再デプロイしてください。
 - worker 手動実行: `podman exec redmine /usr/local/lib/git_triggers/worker.rb -v`
 - worker 詳細ログ: `podman exec redmine /usr/local/lib/git_triggers/worker.rb -vv`
 - worker 排他確認: `podman exec redmine /usr/local/lib/git_triggers/worker.rb -p`
@@ -89,10 +102,12 @@ SLACK_CHANNEL=<channel-id>
 - `git_backend` の post-receive hook は `/var/git_triggers/pending/<repo_name>` を作成します。
 - worker は `pending/` から queue を `processing/` へ移動して取得し、今回取得した repository のみを 1 回の `bin/rails runner` で一括更新します。
 - `redmine-git-triggers-worker.path` は host 側 `@@INSTALL_ROOT@@/git_triggers/pending` が非空になると oneshot worker service を起動します。
+- `redmine-git-triggers-worker.service` の `OnFailure=` は sample drop-in で任意に有効化できます。通知 service 自体は `#NOSTART` 付きなので、`OnFailure=` から参照された時だけ起動されます。
 - `processing/` に残った queue は自動回復しません。必要に応じて内容を確認し、手動で `pending/` へ戻して再投入してください。
 - `GIT_TRIGGERS_FAILURE_HOOK` が空でない場合、changeset 更新失敗時に hook を `repo_name` と `error_message` を引数にして実行します。追加で `GIT_TRIGGERS_REPO_NAME`、`GIT_TRIGGERS_REPO_PATH`、`GIT_TRIGGERS_ERROR_MESSAGE`、`GIT_TRIGGERS_ERROR_CLASS` を環境変数として渡します。
 - `worker.rb -f` は queue 処理を行わず、実運用と同じ notifier 経路でテスト用失敗通知を 1 回送信します。
 - `container/git_triggers/` はコンテナへ `/usr/local/lib/git_triggers` として bind mount されるため、`notify-slack.sh` は追加の unit 変更なしで hook に指定できます。
+- `notify-systemd-failure-slack.sh` は host 側 user systemd service から実行され、`redmine.env-user` の `SLACK_TOKEN` / `SLACK_CHANNEL` を使用して通知します。未設定時は通知をスキップして 0 で終了します。
 
 ## トラブルシュート / 注意点
 - NFS の権限が不足する場合は `make -C redmine print-uid-gid` またはリポジトリルートで `make redmine-get-uid` / `make redmine-get-gid` を実行して UID/GID を確認し、`NFS_ROOT/redmine` の所有権と権限を調整してください。
