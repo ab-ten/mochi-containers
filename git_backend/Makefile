@@ -18,7 +18,8 @@ pre-build-root:
 	install -o "${SERVICE_USER}" -g "${GID_HOST_MAPPED}" -m 0640 \
 	  "${SECRETS_DIR}/git_backend.htpasswd" "${SERVICE_PATH}/git_backend.htpasswd"
 	install -d -o "${SERVICE_USER}" -m 0751 "${INSTALL_ROOT}/git_triggers"
-	semanage fcontext -a -t container_file_t "${INSTALL_ROOT}/git_triggers(/.*)?"
+	semanage fcontext -a -t container_file_t "${INSTALL_ROOT}/git_triggers(/.*)?" \
+	  || semanage fcontext -m -t container_file_t "${INSTALL_ROOT}/git_triggers(/.*)?"
 	restorecon -Rv "${INSTALL_ROOT}/git_triggers"
 	@case " ${SERVICES} " in \
 		*" redmine "*) \
