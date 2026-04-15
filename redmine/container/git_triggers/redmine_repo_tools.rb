@@ -30,26 +30,39 @@ module RedmineRepoTools
     candidates.compact.uniq
   end
 
+  def repository_match_details(matches, target)
+    details = matches.map do |repo|
+      "repository_id=#{repo.id}, project_id=#{repo.project_id}, url=#{repo.url.inspect}"
+    end.join(" | ")
+
+    "multiple repositories matched path #{target}: #{details}"
+  end
+
   def find_project_and_repository_ids_by_git_full_path(git_full_path)
     target = normalize_repo_path(git_full_path)
+    exact_matches = Repository.includes(:project).where(url: target).to_a
 
-    matches = Repository.includes(:project).select do |repo|
-      repository_paths(repo).include?(target)
+    if exact_matches.size > 1
+      raise RuntimeError, repository_match_details(exact_matches, target)
     end
 
-    if matches.empty?
-      raise ActiveRecord::RecordNotFound, "repository not found for path: #{target}"
+    repo = exact_matches.first
+
+    if repo.nil?
+      matches = Repository.includes(:project).where.not(url: [nil, ""]).select do |candidate|
+        repository_paths(candidate).include?(target)
+      end
+
+      if matches.empty?
+        raise ActiveRecord::RecordNotFound, "repository not found for path: #{target}"
+      end
+
+      if matches.size > 1
+        raise RuntimeError, repository_match_details(matches, target)
+      end
+
+      repo = matches.first
     end
-
-    if matches.size > 1
-      details = matches.map do |repo|
-        "repository_id=#{repo.id}, project_id=#{repo.project_id}, url=#{repo.url.inspect}"
-      end.join(" | ")
-
-      raise RuntimeError, "multiple repositories matched path #{target}: #{details}"
-    end
-
-    repo = matches.first
 
     {
       project_id: repo.project_id,
