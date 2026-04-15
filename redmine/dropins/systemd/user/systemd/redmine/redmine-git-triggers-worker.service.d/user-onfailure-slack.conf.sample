@@ -1,0 +1,3 @@
+[Unit]
+OnFailure=redmine-git-triggers-worker-failure-notify.service
+

@@ -31,6 +31,8 @@ useradd -u 20016 -g 20016 git_backend
 
 nextcloud/www-data ユーザーID、redmine/redmine グループID、trilium/trilium ユーザーID取得（NFS使用時に必要です）
 
+サービスディレクトリへ移動して `print-uid-gid` を実行してもよいですが、リポジトリルートから `make <service>-get-uid` / `make <service>-get-gid` でも取得できます。
+
 ```
 $ sudo make -C nextcloud print-uid-gid
 make: Entering directory '/path/to/mochi-containers/nextcloud'
@@ -49,6 +51,15 @@ make: Entering directory '/path/to/mochi-containers/trilium'
 UID_HOST_MAPPED: <trilium_uid_host_mapped>
 GID_HOST_MAPPED: <trilium_gid_host_mapped>
 make: Leaving directory '/path/to/mochi-containers/trilium'
+
+$ sudo make nextcloud-get-uid
+431104
+
+$ sudo make redmine-get-gid
+497606
+
+$ sudo make trilium-get-uid
+<trilium_uid_host_mapped>
 
 ```
 
@@ -90,7 +101,7 @@ V4: /ztank/nfsv4root         -sec=sys -network 192.168.0.0/24
 /ztank/nfsv4root/containers  -network 192.168.0.200/32
 ```
 
-nfs 用ディレクトリ作成（uid や gid の数値は print-uid-gid で調べた値に置き換える）
+nfs 用ディレクトリ作成（uid や gid の数値は `print-uid-gid` またはリポジトリルートの `make <service>-get-uid` / `make <service>-get-gid` で調べた値に置き換える）
 ```
 install -d -o nextcloud -g nextcloud -m 0711 /ztank/nfsv4root/containers/nextcloud
 install -d -o 431104 -g nextcloud -m 770 /ztank/nfsv4root/containers/nextcloud/config /ztank/nfsv4root/containers/nextcloud/data /ztank/nfsv4root/containers/nextcloud/apps

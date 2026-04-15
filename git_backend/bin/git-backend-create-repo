@@ -14,11 +14,8 @@ run_create_repo() {
     return
   fi
 
-  sudo -u "${SERVICE_USER}" env NFS_ROOT="${NFS_ROOT_VALUE}" "${CREATE_REPO_SCRIPT}" "$@"
+  sudo -u "${SERVICE_USER}" env NFS_ROOT="${NFS_ROOT_VALUE}" CERT_DOMAIN="${CERT_DOMAIN_VALUE}" \
+       "${CREATE_REPO_SCRIPT}" "$@"
 }
 
 run_create_repo "$@"
-
-if [ -n "${REPO_NAME}" ]; then
-  echo "repository url: https://git.${CERT_DOMAIN_VALUE}/${REPO_NAME}"
-fi

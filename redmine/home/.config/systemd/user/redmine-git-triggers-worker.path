@@ -1,0 +1,10 @@
+[Unit]
+Description=Watch pending Redmine git trigger queue
+
+[Path]
+DirectoryNotEmpty=@@INSTALL_ROOT@@/git_triggers/pending
+Unit=redmine-git-triggers-worker.service
+
+[Install]
+WantedBy=default.target
+

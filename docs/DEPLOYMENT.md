@@ -69,6 +69,7 @@
 4) `SERVICE_USER` が存在し、ホームが `/home/<service>` であることを確認します。不一致ならエラー終了です。UID/GID は `id` で取得し、NFS チェックに使用します。
 5) `NFS_GROUP_CHECK=No` 以外の場合、`NFS_ROOT/<service>` をサービスユーザー権限で `install -d -m 0700` し、既存なら所有者が `SERVICE_USER` の UID/GID と一致するか確認します。ずれていたらエラー終了です。NFS チェック自体を無効化したいときは `NFS_GROUP_CHECK=No` を環境に渡します。`svc_nfs_clients` のグループ所属チェックは現在無効化されています。
 6) deploy 本体では `SERVICE_NAME/SERVICE_USER/SERVICE_PATH/INSTALL_ROOT/SERVICE_PREFIX/SECRETS_DIR` の必須チェックを行い、`SERVICE_PATH` が `INSTALL_ROOT/<service>` と一致しない場合はエラー終了します。`replace-deploy-vars.sh` と drop-in 収集の都合で `CERT_DOMAIN`/`MAP_LOCAL_ADDRESS`/`SERVICES` も必須となります。
+7) `scripts/check-systemd-trigger-services.sh` により `*.path` / `*.socket` / `*.timer` の参照先 service を検証します。参照先 unit には原則として `#NOSTART` が必要ですが、timer 運用を基本としつつ deploy 直後の起動も許可したい unit は `#FORCESTART` を付けることで例外的に許可されます。
 
 ## デプロイフロー（サービスごと）
 - 基本は「停止 → 配置 → pre-build → ビルド → post-build → systemd 配置 → 再起動」。中間生成物の掃除は次回ビルド開始時に行う。
@@ -91,6 +92,7 @@
 4) **所有権統一**: `chown -R <service>:<service> INSTALL_ROOT/<service> /home/<service>`。
 5) **linger 有効化**: `loginctl enable-linger <service>`。
 6) **pre-build-user / pre-build-root**: Makefile にターゲットがある場合のみ実行。user 側は `INSTALL_ROOT` / `SERVICE_PATH` を環境で渡してサービスユーザー権限、root 側はそのまま。
+   - `pre-build-root` はリポジトリ上のサービスディレクトリを `cwd` にして実行するため、同階層や親ディレクトリへの相対参照を利用できる。
    - `nginx_rp` の `pre-build-root` は `scripts/collect-nginx-conf.sh` で `SERVICES` に含まれる各サービスの `${INSTALL_ROOT}/<service>/http_<service>.conf` / `https_<service>.conf` を `nginx_rp/container/conf/` に集約し、続けて `scripts/generate-index-html.sh` で `nginx_rp/container/html/index.html` を再生成する。`SERVICES` の並びは `ssl_update` → 各サービス → `nginx_rp` の順にしておく。
    - サービス横断 root hook（`pre-build-root-hook-%` / `post-build-root-hook-%`）は hook 定義側サービスの Makefile コンテキストで実行される。デプロイ対象サービスの情報が必要な場合は `HOOK_TARGET_SERVICE_*` を使用する。
    - サービス横断 root hook は `make` の通常更新判定で実行されるため、毎回実行が必要な hook は `.PHONY`（または `FORCE` 依存）を定義する。増分実行を意図する hook は成果物と依存関係を明示して `.PHONY` 化しない。
@@ -98,6 +100,11 @@
    - `make <service>-deploy` のような単体デプロイでは、`SERVICES` 全体を前提とした関連サービスへの反映は行われない。例えば `make redmine-deploy` のみを実行しても `redmine/https_redmine.conf` は `nginx_rp/container/conf/` に集約されないため、nginx 側への反映が必要な場合は `nginx_rp` を含めて再デプロイする。
 8) **コンテナビルド**: `container/` と `container.*` ディレクトリを検出し、存在するディレクトリごとに `${INSTALL_ROOT}/scripts/container-build.sh` を実行する。`container-build.sh` は `custom-build.sh` があれば優先実行し、なければ共通処理として `podman build` を実行する。`custom-build.sh` が存在して実行不可な場合はエラー終了する。
 9) **post-build-user / post-build-root**: あれば pre-build と同様に実行。
+   - `ssl_update` の `post-build-root` は `${INSTALL_ROOT}/ssl_share` 配下の共有ディレクトリをローカルディスク上に作成し、証明書共有用の owner/group/mode を調整する。
+   - `post-build-root` は deploy 先の `${SERVICE_PATH}` を `cwd` にして実行するため、リポジトリルート側の相対パスを前提にした処理は置かない。
+   - `git_backend` の `pre-build-root` は `${INSTALL_ROOT}/git_triggers` 配下のディレクトリをローカルディスク上に常に作成する。`SERVICES` に `redmine` を含める場合は共有向け group / mode に調整し、含めない場合は特に何もしない。
+     - 一度でも redmine 込みで deploy した場合は `pending/` にタイムスタンプファイルが touch される。
+     - 過去を含めた deploy 全てにおいて redmine が有効ではなかった場合は pending/ が存在しないので何も行われない。
 10) **systemd 配置**:
    - root unit: `INSTALL_ROOT/<service>/systemd/` のファイルを `/etc/systemd/system/<SERVICE_PREFIX>-<service>-<name>` にコピーし、`replace-deploy-vars.sh` でプレースホルダー置換。0644/root:root にして `systemctl daemon-reload`。
    - user unit / quadlet / timer: 置換済みファイルを前提に `sudo systemctl -M "<user>@.host" --user daemon-reload`。

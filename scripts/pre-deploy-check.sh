@@ -61,4 +61,7 @@ else
   fi
 fi
 
+info "trigger unit の #NOSTART / #FORCESTART 依存を検証"
+bash "${SCRIPT_DIR}/check-systemd-trigger-services.sh" "${START_DIR}"
+
 info "ok for ${SERVICE_NAME}"

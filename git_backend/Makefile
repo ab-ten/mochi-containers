@@ -17,6 +17,27 @@ GIT_BACKEND_SOCK_VOLUME = git_backend_fcgi_sock
 pre-build-root:
 	install -o "${SERVICE_USER}" -g "${GID_HOST_MAPPED}" -m 0640 \
 	  "${SECRETS_DIR}/git_backend.htpasswd" "${SERVICE_PATH}/git_backend.htpasswd"
+	install -d -o "${SERVICE_USER}" -m 0751 "${INSTALL_ROOT}/git_triggers"
+	semanage fcontext -a -t container_file_t "${INSTALL_ROOT}/git_triggers(/.*)?" \
+	  || semanage fcontext -m -t container_file_t "${INSTALL_ROOT}/git_triggers(/.*)?"
+	restorecon -Rv "${INSTALL_ROOT}/git_triggers"
+	@case " ${SERVICES} " in \
+		*" redmine "*) \
+			redmine_gid="$$( $(MAKE) -C .. --no-print-directory redmine-get-gid )"; \
+			redmine_service_user="$$( $(MAKE) -C .. --no-print-directory redmine-get-service-user )"; \
+			redmine_service_gid="$$( id -g $$redmine_service_user )"; \
+			echo "redmine_gid = $$redmine_gid"; \
+			install -d "${INSTALL_ROOT}/git_triggers/pending"; \
+			install -d "${INSTALL_ROOT}/git_triggers/processing"; \
+			chown "${SERVICE_USER}:$$redmine_service_gid" "${INSTALL_ROOT}/git_triggers"; \
+			chown "${SERVICE_USER}:$$redmine_gid" \
+				"${INSTALL_ROOT}/git_triggers/pending" "${INSTALL_ROOT}/git_triggers/processing"; \
+			chmod 0771 "${INSTALL_ROOT}/git_triggers"; \
+			chmod 2770 "${INSTALL_ROOT}/git_triggers/pending" "${INSTALL_ROOT}/git_triggers/processing"; \
+			;; \
+		*) \
+			;; \
+	esac
 
 post-build-user:
 	podman volume inspect "${GIT_BACKEND_SOCK_VOLUME}" >/dev/null 2>&1 \
@@ -25,6 +46,7 @@ post-build-user:
 
 post-build-root:
 	install -d -o root -g root -m 0755 "${INSTALL_ROOT}/bin"
+	chmod 755 "${SERVICE_PATH}/container/"*.sh
 	"${INSTALL_ROOT}/scripts/replace-deploy-vars.sh" \
 	  "${SERVICE_PATH}/bin/git-backend-create-repo"
 	install -o root -g root -m 0755 \

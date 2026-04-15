@@ -48,6 +48,6 @@
 
 ## トラブルシュート / 注意点
 - `DBFILE_DIR` はローカルディスク上に作成されます。
-- `NFS_ROOT/trilium` は `pre-build-root` で作成・チェックされます。初回構築時は `make -C trilium print-uid-gid` で UID/GID を確認し、必要に応じて NFS 側の所有権を調整してください。
+- `NFS_ROOT/trilium` は `pre-build-root` で作成・チェックされます。初回構築時は `make -C trilium print-uid-gid` またはリポジトリルートで `make trilium-get-uid` / `make trilium-get-gid` を実行して UID/GID を確認し、必要に応じて NFS 側の所有権を調整してください。
 - SELinux 有効環境では bind mount に `:Z` を付与しています。
 - `custom-build.sh` が未配置の場合は `scripts/container-build.sh` による共通ビルドが実行されます。タイムゾーンなどのビルド引数を変更する場合は、`container/custom-build.sh.sample` を `container/custom-build.sh` にコピーして実行権限を付与してください。
