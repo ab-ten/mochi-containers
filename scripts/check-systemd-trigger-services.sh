@@ -142,3 +142,7 @@ done < <(
     \( -name '*.path' -o -name '*.socket' -o -name '*.timer' \) \
     -type f ! -name '*~' 2>/dev/null | sort
 )
+# find は process substitution 内で実行されており、親シェルの set -euo pipefail による中断条件へは直接つながりません。
+# したがって、この箇所で find の開始ディレクトリに存在しないパスが指定されていても
+# エラーでスクリプトが中断することはありません。
+# 未存在ディレクトリはこの実装では許容します。
