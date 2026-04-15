@@ -13,4 +13,7 @@ text="Redmine git trigger failed for ${repo_name}: ${error_message}"
 curl -fsS -X POST 'https://slack.com/api/chat.postMessage' \
   -d "token=${SLACK_TOKEN}" \
   -d "channel=${SLACK_CHANNEL}" \
-  -d "text=${text}"
+  --data-urlencode "text=${text}"
+
+# curl が失敗してもエラーにはしない
+exit 0
