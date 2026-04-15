@@ -8,3 +8,5 @@ After=@@ROOT_UNIT_PREFIX@@proxy-80.socket
 #Type=notify
 ExecStart=/usr/lib/systemd/systemd-socket-proxyd 127.0.0.1:8080
 PrivateTmp=yes
+
+#FORCESTART

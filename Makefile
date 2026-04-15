@@ -50,6 +50,10 @@ prepare-common:
 %-get-gid:
 	@SERVICE_PATH="${INSTALL_ROOT}/$*" $(MAKE) --no-print-directory -C "$*" get-gid
 
+%-get-service-user:
+	@SERVICE_PATH="${INSTALL_ROOT}/$*" $(MAKE) --no-print-directory -C "$*" get-service-user
+
+
 #
 intall-pre-commit-hook: .git/hooks/pre-commit
 .git/hooks/pre-commit: pre-commit.sh

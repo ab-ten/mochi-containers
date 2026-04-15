@@ -9,6 +9,7 @@ usage() {
 validate_only=0
 install_hook_only=0
 hook_target="/usr/local/bin/post-receive-trigger-redmine.sh"
+redmine_repository_path=""
 
 install_hook() {
   local hook_path="$1"
@@ -84,12 +85,14 @@ fi
 repo_root="${NFS_ROOT%/}/git_backend/repos"
 repo_path="${repo_root}/${name}"
 post_receive_hook="${repo_path}/hooks/post-receive"
+redmine_repository_path="/var/git/repos/${name}"
 
 umask 027
 
 if [ -e "${repo_path}" ]; then
   if [ "${install_hook_only}" -eq 1 ]; then
     install_hook "${post_receive_hook}"
+    echo "redmine repository path: ${redmine_repository_path}"
     echo "repository url: https://git.${CERT_DOMAIN}/${name}"
     exit 0
   fi
@@ -102,4 +105,5 @@ install_hook "${post_receive_hook}"
 #git -C "${repo_path}" update-server-info
 
 echo "created: ${repo_path}"
+echo "redmine repository path: ${redmine_repository_path}"
 echo "repository url: https://git.${CERT_DOMAIN}/${name}"

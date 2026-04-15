@@ -18,15 +18,22 @@ pre-build-root:
 	install -o "${SERVICE_USER}" -g "${GID_HOST_MAPPED}" -m 0640 \
 	  "${SECRETS_DIR}/git_backend.htpasswd" "${SERVICE_PATH}/git_backend.htpasswd"
 	install -d -o "${SERVICE_USER}" -m 0751 "${INSTALL_ROOT}/git_triggers"
+	semanage fcontext -a -t container_file_t "${INSTALL_ROOT}/git_triggers(/.*)?" \
+	  || semanage fcontext -m -t container_file_t "${INSTALL_ROOT}/git_triggers(/.*)?"
+	restorecon -Rv "${INSTALL_ROOT}/git_triggers"
 	@case " ${SERVICES} " in \
 		*" redmine "*) \
 			redmine_gid="$$( $(MAKE) -C .. --no-print-directory redmine-get-gid )"; \
+			redmine_service_user="$$( $(MAKE) -C .. --no-print-directory redmine-get-service-user )"; \
+			redmine_service_gid="$$( id -g $$redmine_service_user )"; \
+			echo "redmine_gid = $$redmine_gid"; \
 			install -d "${INSTALL_ROOT}/git_triggers/pending"; \
 			install -d "${INSTALL_ROOT}/git_triggers/processing"; \
-			chown "${SERVICE_USER}:$$redmine_gid" "${INSTALL_ROOT}/git_triggers" "${INSTALL_ROOT}/git_triggers/pending" "${INSTALL_ROOT}/git_triggers/processing"; \
-			chmod 0751 "${INSTALL_ROOT}/git_triggers"; \
-			chmod 2770 "${INSTALL_ROOT}/git_triggers/pending"; \
-			chmod 0070 "${INSTALL_ROOT}/git_triggers/processing"; \
+			chown "${SERVICE_USER}:$$redmine_service_gid" "${INSTALL_ROOT}/git_triggers"; \
+			chown "${SERVICE_USER}:$$redmine_gid" \
+				"${INSTALL_ROOT}/git_triggers/pending" "${INSTALL_ROOT}/git_triggers/processing"; \
+			chmod 0771 "${INSTALL_ROOT}/git_triggers"; \
+			chmod 2770 "${INSTALL_ROOT}/git_triggers/pending" "${INSTALL_ROOT}/git_triggers/processing"; \
 			;; \
 		*) \
 			;; \

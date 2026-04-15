@@ -61,7 +61,7 @@ repository url: https://git.example.com/sample.git
 - `dropins/systemd/user/containers/redmine/redmine.container.d/git-backend-repos-ro.conf`: `redmine` コンテナへ `NFS_ROOT/git_backend` を read only で配布する drop-in
 - `GIT_BACKEND_SOCK_VOLUME`: 両コンテナで共有する UNIX domain socket 用 Podman volume（`post-build-user` で作成）
 - `${SERVICE_PATH}/git_backend.htpasswd`: `pre-build-root` で配置する Basic 認証ファイル
-- `scripts/create-repo.sh`: bare リポジトリ作成スクリプト
+- `scripts/create-repo.sh`: bare リポジトリ作成スクリプト。作成後に Redmine のリポジトリパスへそのまま貼り付けできる `/var/git/repos/<name>.git` を表示
 - `bin/git-backend-create-repo`: deploy 時に `${INSTALL_ROOT}/bin/git-backend-create-repo` として配置するラッパースクリプト
 
 ## 環境変数・シークレット
@@ -108,7 +108,7 @@ git:$2y$10$exampleexampleexampleexampleexampleexampleexampleexample
 - `SERVICES` に `redmine` を含める場合、`pre-build-root` は `make redmine-get-gid` で取得した host 側 GID を group に使用し、`${INSTALL_ROOT}/git_triggers` を 0751、`pending/` を 2770、`processing/` を 0070 で共有向けに調整します。
 - `SERVICES` に `redmine` を含めない場合、`pre-build-root` は `${INSTALL_ROOT}/git_triggers` 下の操作は行いません。将来の hook は `pending/` が writable でない場合に何もしない前提です（一度 redmine 用に pending, processing が作られたら touch が行われます）
 - `post-build-root` は `${INSTALL_ROOT}/bin/git-backend-create-repo` を配置し、`@@NFS_ROOT@@` などのテンプレートを実値へ置換します。
-- `scripts/create-repo.sh` は bare リポジトリ作成時に `hooks/post-receive` を `/usr/local/bin/post-receive-trigger-redmine.sh` への symlink として作成します。`-i` 指定時は既存 bare リポジトリに対して同 symlink のみを設定します。
+- `scripts/create-repo.sh` は bare リポジトリ作成時に `hooks/post-receive` を `/usr/local/bin/post-receive-trigger-redmine.sh` への symlink として作成します。`-i` 指定時は既存 bare リポジトリに対して同 symlink のみを設定します。作成後および `-i` 実行時は、Redmine のリポジトリパス欄へ入力する `/var/git/repos/<name>.git` を表示します。
 - `dropins/systemd/user/containers/redmine/redmine.container.d/git-backend-repos-ro.conf` を配置すると、`redmine` デプロイ時に `NFS_ROOT/git_backend` が `/var/git` へ `read only` で mount されます（リポジトリ実体は `/var/git/repos`）。
 
 ## トラブルシュート / 注意点

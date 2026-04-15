@@ -1,0 +1,13 @@
+[Unit]
+Description=Run Redmine git trigger worker
+After=redmine.service
+Requires=redmine.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/podman exec redmine /usr/local/lib/git_triggers/worker.rb -v
+#ExecStart=/usr/bin/false
+# 失敗通知をテストするときは false にして sudo redmine-deploy してから
+# sudo systemctl -M "redmine@.host" --user start redmine-git-triggers-worker.service
+
+#NOSTART

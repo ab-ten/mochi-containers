@@ -69,6 +69,7 @@
 4) `SERVICE_USER` が存在し、ホームが `/home/<service>` であることを確認します。不一致ならエラー終了です。UID/GID は `id` で取得し、NFS チェックに使用します。
 5) `NFS_GROUP_CHECK=No` 以外の場合、`NFS_ROOT/<service>` をサービスユーザー権限で `install -d -m 0700` し、既存なら所有者が `SERVICE_USER` の UID/GID と一致するか確認します。ずれていたらエラー終了です。NFS チェック自体を無効化したいときは `NFS_GROUP_CHECK=No` を環境に渡します。`svc_nfs_clients` のグループ所属チェックは現在無効化されています。
 6) deploy 本体では `SERVICE_NAME/SERVICE_USER/SERVICE_PATH/INSTALL_ROOT/SERVICE_PREFIX/SECRETS_DIR` の必須チェックを行い、`SERVICE_PATH` が `INSTALL_ROOT/<service>` と一致しない場合はエラー終了します。`replace-deploy-vars.sh` と drop-in 収集の都合で `CERT_DOMAIN`/`MAP_LOCAL_ADDRESS`/`SERVICES` も必須となります。
+7) `scripts/check-systemd-trigger-services.sh` により `*.path` / `*.socket` / `*.timer` の参照先 service を検証します。参照先 unit には原則として `#NOSTART` が必要ですが、timer 運用を基本としつつ deploy 直後の起動も許可したい unit は `#FORCESTART` を付けることで例外的に許可されます。
 
 ## デプロイフロー（サービスごと）
 - 基本は「停止 → 配置 → pre-build → ビルド → post-build → systemd 配置 → 再起動」。中間生成物の掃除は次回ビルド開始時に行う。
