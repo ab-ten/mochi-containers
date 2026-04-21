@@ -120,3 +120,23 @@
 ## エラー時の扱い
 - ユーザー/ホームパス確認や NFS ディレクトリの所有権確認、ディレクトリ準備に失敗したら即時エラー終了。
 - 中途のコピーやビルド生成物はそのまま残して構わない（デバッグ用途）。次回ビルド開始時に掃除する。
+
+## トラブルシュート
+### `/run/user/<uid>` が存在せず rootless Podman が失敗する場合
+- `podman unshare` や rootless Podman 関連処理で `/run/user/<uid>` が存在しない旨のエラーが出る場合は、linger 状態の破損を疑ってください。
+- 対象サービスユーザーに対して、以下のコマンドで状態を確認してください。
+
+```bash
+loginctl show-user <service_user> -p Linger -p State -p RuntimePath
+```
+
+- `Failed to get user: User ID <uid> is not logged in or lingering` が出る場合は、linger 状態が壊れている可能性があります。
+- 以下を順に実行して復旧を試してください。
+
+```bash
+sudo loginctl disable-linger <service_user>
+sudo loginctl enable-linger <service_user>
+sudo systemctl restart systemd-logind
+```
+
+- 復旧後は再度 `loginctl show-user <service_user> -p Linger -p State -p RuntimePath` を実行し、`RuntimePath=/run/user/<uid>` が表示されることを確認してください。
