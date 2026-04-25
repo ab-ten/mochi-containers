@@ -13,11 +13,11 @@
 - `SERVICE_PATH`: `/srv/project/nextcloud`
 - `HTML_DIR`: `/srv/project/nextcloud_html`
 - `NEXTCLOUD_PORT`: ホスト側公開ポート（既定: 9000）
-- `NFS_ROOT/nextcloud/{app,data,config}`: 永続領域
+- `NFS_ROOT/nextcloud/{custom_apps,data,config}`: 永続領域
 
 ## ディレクトリ・ボリューム構成
-- `HTML_DIR` に `app/` `data/` `config/` を作成します（`pre-build-root`）。
-- `NFS_ROOT/nextcloud/app` / `data` / `config` を作成します（`post-build-user`）。
+- `HTML_DIR` に `custom_apps/` `data/` `config/` を作成します（`pre-build-root`）。
+- `NFS_ROOT/nextcloud/custom_apps` / `data` / `config` を作成します（`post-build-user`）。
 - `https_nextcloud.conf` を `SERVICE_PATH` に配置し、`replace-files-user` で `@@CERT_DOMAIN@@` を置換します。
 - unit 側で `HTML_DIR` や NFS ボリュームを bind mount します。
 
@@ -59,3 +59,4 @@ OVERWRITECLIURL=https://@@SERVICE_NAME@@.@@CERT_DOMAIN@@
 ## トラブルシュート / 注意点
 - userns に合わせた UID/GID で `HTML_DIR` の所有権を調整する必要があります。
 - UID/GID の確認には `make -C nextcloud print-uid-gid` またはリポジトリルートで `make nextcloud-get-uid` / `make nextcloud-get-gid` を使用してください。
+- rootless Podman + NFS 環境での Nextcloud 31 から 32 へのアップグレード対応メモは `Migration-2026-0425.md` を参照してください。

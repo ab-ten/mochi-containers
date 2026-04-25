@@ -1,1 +1,27 @@
-FROM docker.io/nextcloud:stable-apache
+FROM docker.io/nextcloud:32-apache
+
+# Rootless Podman + NFS bind mounts cannot reliably accept chown from
+# the container's root user namespace. Keep the container running as root
+# for Apache/entrypoint setup, but disable rsync --chown and remove
+# -o/-g so the Nextcloud source sync step does not overwrite owner/group.
+RUN set -eu; \
+  cp -a /entrypoint.sh /entrypoint.sh.orig; \
+  grep -F 'rsync_options="-rlDog --chown $user:$group"' /entrypoint.sh; \
+  sed -i \
+    's/rsync_options="-rlDog --chown $user:$group"/rsync_options="-rlD"/' \
+    /entrypoint.sh; \
+  ! grep -F 'rsync_options="-rlDog --chown $user:$group"' /entrypoint.sh; \
+  grep -F 'rsync_options="-rlD"' /entrypoint.sh
+
+# Rootless Podman + NFS may make fileowner(config/config.php) appear as
+# uid 65534/nobody even when www-data can actually read and write it.
+# Keep occ running as www-data, but bypass this single owner-id equality check.
+RUN set -eu; \
+  for f in /usr/src/nextcloud/console.php /var/www/html/console.php /usr/src/nextcloud/cron.php /var/www/html/cron.php; do \
+    if [ -f "$f" ]; then \
+      cp -a "$f" "$f.orig"; \
+      grep -F "\$configUser = fileowner(OC::\$configDir . 'config.php');" "$f"; \
+      perl -0pi -e "s/\\\$configUser = fileowner\\(OC::\\\$configDir \\. 'config\\.php'\\);/\\\$configUser = \\\$user; \\/\\/ patched for rootless Podman + NFS owner-id reporting/" "$f"; \
+      grep -F "\$configUser = \$user;" "$f"; \
+    fi; \
+  done

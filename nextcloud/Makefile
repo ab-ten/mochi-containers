@@ -16,13 +16,13 @@ NEXTCLOUD_PORT = 9000
 ifeq ($(shell id -u),0)
 pre-build-root:
 	install -d -o ${UID_HOST_MAPPED} -g ${GID_HOST_MAPPED} -m 770 \
-	  "$(HTML_DIR)" "$(HTML_DIR)/app" "$(HTML_DIR)/data" "$(HTML_DIR)/config"
+	  "$(HTML_DIR)" "$(HTML_DIR)/custom_apps" "$(HTML_DIR)/data" "$(HTML_DIR)/config"
 
 endif
 
 
 post-build-user:
-	mkdir -p -m 700 $(NFS_ROOT)/$(SERVICE_NAME)/app \
+	mkdir -p -m 2770 $(NFS_ROOT)/$(SERVICE_NAME)/custom_apps \
 		$(NFS_ROOT)/$(SERVICE_NAME)/data \
 		$(NFS_ROOT)/$(SERVICE_NAME)/config
 
