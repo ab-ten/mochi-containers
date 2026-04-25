@@ -1,4 +1,4 @@
-FROM docker.io/nextcloud:stable-apache
+FROM docker.io/nextcloud:32-apache
 
 # Rootless Podman + NFS bind mounts cannot reliably accept chown from
 # the container's root user namespace. Keep the container running as root
