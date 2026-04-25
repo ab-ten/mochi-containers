@@ -2,8 +2,8 @@ FROM docker.io/nextcloud:32-apache
 
 # Rootless Podman + NFS bind mounts cannot reliably accept chown from
 # the container's root user namespace. Keep the container running as root
-# for Apache/entrypoint setup, but disable rsync --chown during the
-# Nextcloud source sync step.
+# for Apache/entrypoint setup, but disable rsync --chown and remove
+# -o/-g so the Nextcloud source sync step does not overwrite owner/group.
 RUN set -eu; \
   cp -a /entrypoint.sh /entrypoint.sh.orig; \
   grep -F 'rsync_options="-rlDog --chown $user:$group"' /entrypoint.sh; \

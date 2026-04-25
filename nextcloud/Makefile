@@ -22,7 +22,7 @@ endif
 
 
 post-build-user:
-	mkdir -p -m 700 $(NFS_ROOT)/$(SERVICE_NAME)/custom_apps \
+	mkdir -p -m 2770 $(NFS_ROOT)/$(SERVICE_NAME)/custom_apps \
 		$(NFS_ROOT)/$(SERVICE_NAME)/data \
 		$(NFS_ROOT)/$(SERVICE_NAME)/config
 

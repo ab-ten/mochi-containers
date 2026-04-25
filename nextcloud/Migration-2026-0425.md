@@ -2,7 +2,7 @@
 
 ## 1. 対象環境
 
-mochi-contaniers 627009cbb77bc1533ffd18981ae506badb1f85cd 以前のリポジトリで構築したシステム
+mochi-containers 627009cbb77bc1533ffd18981ae506badb1f85cd 以前のリポジトリで構築したシステム
 
 ### 前提
 
@@ -234,7 +234,7 @@ find /ztssd/nfsv4root/containers/nextcloud/data -type f -exec chmod 0660 {} +
 （Containerfile を以下のようにしてパッチを二箇所行った）
 
 ```Containerfile
-FROM docker.io/nextcloud:stable-apache
+FROM docker.io/nextcloud:32-apache
 
 # Rootless Podman + NFS:
 # Disable rsync chown because NFS may reject chown from the container's user namespace.
@@ -471,6 +471,6 @@ occ upgrade: successful
 今回の本質は、**NFS 上で実際には読み書きできるにもかかわらず、rootless Podman の user namespace と NFS の UID/GID 表示が噛み合わず、Nextcloud の stat/fileowner ベースの安全チェックが誤爆した**ことです。
 そのため、実アクセス権の調整だけでは足りず、Nextcloud 公式イメージの root 前提同期処理と `occ` の owner check を、今回の運用環境に合わせて局所的にパッチしました。
 
-[1]: https://github.com/nextcloud/docker/issues/1028?utm_source=chatgpt.com "Problems with image docker and volumes on NFS #1028"
-[2]: https://www.redhat.com/ja/blog/rootless-podman-nfs?utm_source=chatgpt.com "Rootless Podman and NFS"
-[3]: https://docs.nextcloud.com/server/stable/admin_manual/occ_command.html?utm_source=chatgpt.com "Using the occ command"
+[1]: https://github.com/nextcloud/docker/issues/1028 "Problems with image docker and volumes on NFS #1028"
+[2]: https://www.redhat.com/ja/blog/rootless-podman-nfs "Rootless Podman and NFS"
+[3]: https://docs.nextcloud.com/server/stable/admin_manual/occ_command.html "Using the occ command"
