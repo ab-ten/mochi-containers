@@ -104,12 +104,17 @@ V4: /ztank/nfsv4root         -sec=sys -network 192.168.0.0/24
 nfs 用ディレクトリ作成（uid や gid の数値は `print-uid-gid` またはリポジトリルートの `make <service>-get-uid` / `make <service>-get-gid` で調べた値に置き換える）
 ```
 install -d -o nextcloud -g nextcloud -m 0711 /ztank/nfsv4root/containers/nextcloud
-install -d -o 431104 -g nextcloud -m 770 /ztank/nfsv4root/containers/nextcloud/config /ztank/nfsv4root/containers/nextcloud/data /ztank/nfsv4root/containers/nextcloud/apps
+install -d -o 431104 -g nextcloud -m 2770 /ztank/nfsv4root/containers/nextcloud/config /ztank/nfsv4root/containers/nextcloud/data /ztank/nfsv4root/containers/nextcloud/custom_apps
 install -d -g 497606 -o redmine -m 2770 /ztank/nfsv4root/containers/redmine
 install -d -o trilium -g 563143 -m 2770 /ztank/nfsv4root/containers/trilium
 install -d -o git_backend -g redmine -m 0751 /ztank/nfsv4root/containers/git_backend
 install -d -o git_backend -g 497606 -m 2750 /ztank/nfsv4root/containers/git_backend/repos
 ```
+
+### nextcloud migration 用に必要なこと
+- 上の nextcloud 用の owner/group permission 変更を反映する。
+- chown 431104 /ztank/nfsv4root/containers/nextcloud/config/*
+- chown 431104 /ztank/nfsv4root/containers/nextcloud/config/.htaccess
 
 補足:
 - `git_backend` は上位ディレクトリと実データ格納ディレクトリを分ける 2 段構成にしてください。
