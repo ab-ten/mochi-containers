@@ -9,9 +9,9 @@ Pull=never
 ContainerName=nextcloud
 PublishPort=127.0.0.1:@@NEXTCLOUD_PORT@@:80
 Volume=@@HTML_DIR@@:/var/www/html:Z
-Volume=@@NFS_ROOT@@/nextcloud/app:/var/www/html/app:Z
-Volume=@@NFS_ROOT@@/nextcloud/data:/var/www/html/data:Z
-Volume=@@NFS_ROOT@@/nextcloud/config:/var/www/html/config:Z
+Volume=@@NFS_ROOT@@/nextcloud/custom_apps:/var/www/html/custom_apps
+Volume=@@NFS_ROOT@@/nextcloud/config:/var/www/html/config
+Volume=@@NFS_ROOT@@/nextcloud/data:/var/www/html/data
 EnvironmentFile=@@SERVICE_PATH@@/nextcloud.env-user
 
 [Service]
