@@ -6,7 +6,7 @@ require_relative "failure_notifier"
 
 module GitTriggers
   class Worker
-    LOCK_FILE = "/var/git_lock/git-triggers-worker.lock"
+    LOCK_FILE = "/tmp/redmine-git-triggers-worker.lock"
     PENDING_DIR = "/var/git_triggers/pending"
     PROCESSING_DIR = "/var/git_triggers/processing"
     RUN_BATCH_SCRIPT = "/usr/local/lib/git_triggers/run_batch.rb"
