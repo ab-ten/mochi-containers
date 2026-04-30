@@ -43,6 +43,7 @@
   - そのため、フック内で `SERVICE_NAME` / `SERVICE_USER` / `SERVICE_PATH` / `ROOT_UNIT_PREFIX` / `SERVICE_HOME` / `USER_UNIT_DIR` などを参照した場合は、原則として hook 定義側サービスの値を参照します。
   - デプロイ対象サービス（`deploy-service.sh` を現在実行している対象）の情報が必要な場合は、必ず `HOOK_TARGET_SERVICE_*` を参照してください。
   - hook 定義側サービスの root unit 接頭辞が必要な場合は、`$(SERVICE_PREFIX)-$(SERVICE_NAME)-` で計算できます。
+- サービス横断 root hook の `make` 呼び出しには `env -i` を使用し、親サービス固有の環境変数を持ち込まない。引き継ぐのは `PATH`, `HOME`, `LANG`, `LC_ALL`, `USER`, `LOGNAME` と、`INSTALL_ROOT`, `NFS_ROOT`, `SERVICE_PREFIX`, `SECRETS_DIR`, `SERVICES`, `CERT_DOMAIN`, `MAP_LOCAL_ADDRESS`, `BASE_REPO_DIR`, `SCRIPT_DIR` のみとする。
 - `REPLACE_FILES_USER` / `REPLACE_FILES_ROOT` … 値が空でなければ `replace-files-user` / `replace-files-root` ターゲットを実行するトリガ。
 - `REPLACE_ADD_VAR` … `replace-deploy-vars.sh` の置換対象変数を追加する（例: `REPLACE_ADD_VAR=DEPLOY_ENV` で `@@DEPLOY_ENV@@` を置換）。
 - `run_user_make` に渡す環境変数リストは `scripts/deploy-vars.subr` の `DEPLOY_REQUIRED_VARS` で一元管理する。
@@ -77,6 +78,7 @@
    - `grep -q '^pre-build-root:' Makefile` で存在したら `make -C "${START_DIR}" pre-build-root` を root のまま実行する（`cwd` はリポジトリ上の元ディレクトリ）。
    - `pre-build-root` 実行後、`SERVICES` を巡回して各サービスの `pre-build-root-hook-<デプロイ対象サービス名>` を root で実行する。
    - フック呼び出しは `BASE_REPO_DIR/<service>/Makefile` を対象に実行する。これにより、`Makefile.local` で定義したフックも利用できる。
+   - フック呼び出し時のプロセス環境は `env -i` で初期化し、共通 deploy 変数と `PATH`, `HOME`, `LANG`, `LC_ALL`, `USER`, `LOGNAME` だけを明示的に引き継ぐ。`UID_IN_PODMAN` / `GID_IN_PODMAN` など親サービス固有の環境変数は引き継がない。
    - `mk/services.mk` には no-op の `pre-build-root-hook-%` が定義されているため、フック未定義サービスがあってもエラーにはならない。サービス固有の明示ターゲットが定義されている場合は、明示ターゲットが優先される。
    - フック実行時には `HOOK_TARGET_SERVICE_NAME` / `HOOK_TARGET_SERVICE_USER` / `HOOK_TARGET_SERVICE_PATH` を環境変数として渡す。
    - フック呼び出しは `make --no-print-directory` で実行され、`--always-make`（`-B`）は付与しない。したがって hook ターゲットは make の通常更新判定（タイムスタンプ）に従って実行・スキップされる。

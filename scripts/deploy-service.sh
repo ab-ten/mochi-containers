@@ -60,6 +60,35 @@ run_user_make() {
   )
 }
 
+build_cross_service_hook_env_pairs() {
+  local -n pairs_ref=$1
+  local preserve_vars=(
+    PATH
+    HOME
+    LANG
+    LC_ALL
+    USER
+    LOGNAME
+    INSTALL_ROOT
+    NFS_ROOT
+    SERVICE_PREFIX
+    SECRETS_DIR
+    SERVICES
+    CERT_DOMAIN
+    MAP_LOCAL_ADDRESS
+    BASE_REPO_DIR
+    SCRIPT_DIR
+  )
+  local var
+
+  pairs_ref=()
+  for var in "${preserve_vars[@]}"; do
+    if [ -n "${!var-}" ]; then
+      pairs_ref+=("${var}=${!var}")
+    fi
+  done
+}
+
 run_system_systemctl_stop() {
   if (systemctl --no-pager is-active "$1" | grep -q "^active") >/dev/null 2>&1; then
     info "Stopping system unit: $1"
@@ -84,11 +113,14 @@ run_cross_service_root_hooks() {
   local svc
   local svc_dir
   local svc_service_path
+  local hook_env_pairs=()
 
   # サービス横断 root hook は「デプロイ対象サービス」の phase で実行する。
   # hook を定義している側（svc）の Makefile が評価されるため、
   # フック内で SERVICE_NAME/SERVICE_USER/SERVICE_PATH を参照すると svc 側の値になる。
   # デプロイ対象サービスを参照したい場合は HOOK_TARGET_SERVICE_* を使用する。
+  # 親サービス固有の環境変数は引き継がず、必要最小限の変数だけを明示的に渡す。
+  build_cross_service_hook_env_pairs hook_env_pairs
   info "${phase} hook をサービス横断で実行: target=${hook_target}"
   for svc in ${SERVICES}; do
     svc_dir="${BASE_REPO_DIR}/${svc}"
@@ -106,12 +138,13 @@ run_cross_service_root_hooks() {
     # 注意:
     # - SERVICE_PATH は hook 呼び出し元サービス（svc）のパスを渡す。
     # - HOOK_TARGET_SERVICE_* はデプロイ対象サービスの情報を渡す。
-    make --no-print-directory -C "${svc_dir}" \
-      "SERVICE_PATH=${svc_service_path}" \
-      "HOOK_TARGET_SERVICE_NAME=${SERVICE_NAME}" \
-      "HOOK_TARGET_SERVICE_USER=${SERVICE_USER}" \
-      "HOOK_TARGET_SERVICE_PATH=${SERVICE_PATH}" \
-      "${hook_target}"
+    env -i "${hook_env_pairs[@]}" \
+      make --no-print-directory -C "${svc_dir}" \
+        "SERVICE_PATH=${svc_service_path}" \
+        "HOOK_TARGET_SERVICE_NAME=${SERVICE_NAME}" \
+        "HOOK_TARGET_SERVICE_USER=${SERVICE_USER}" \
+        "HOOK_TARGET_SERVICE_PATH=${SERVICE_PATH}" \
+        "${hook_target}"
   done
 }
 
