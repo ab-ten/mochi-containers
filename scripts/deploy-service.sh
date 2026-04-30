@@ -295,13 +295,26 @@ done
 info "systemd drop-in を収集"
 "${SCRIPT_DIR}/collect-systemd-dropins.sh"
 
+info "install 用の user unit 一覧を取得"
+mapfile -t user_units_install < <(collect_user_units "${USER_CONTAINER_UNIT_DIR}" "${USER_SYSTEMD_USER_DIR}" || true)
+
+info "loginctl enable-linger ${SERVICE_USER}"
+loginctl enable-linger "${SERVICE_USER}"
+
+if [ "${#user_units_install[@]}" -gt 0 ]; then
+  service_uid="$(id -u "${SERVICE_USER}")"
+  info "user unit を検出したため ${SERVICE_PATH}/.startup_linger を作成"
+  printf '%s\n' "${service_uid}" > "${SERVICE_PATH}/.startup_linger"
+  chown "${SERVICE_USER}:${SERVICE_USER}" "${SERVICE_PATH}/.startup_linger"
+  chmod 0644 "${SERVICE_PATH}/.startup_linger"
+else
+  info "user unit が無いため .startup_linger は作成しない"
+fi
+
 info "所有権を ${SERVICE_USER}:${SERVICE_USER} に統一"
 chown -R "${SERVICE_USER}:${SERVICE_USER}" "${SERVICE_PATH}" "${SERVICE_HOME}"
 
 cd "${SERVICE_PATH}"
-
-info "loginctl enable-linger ${SERVICE_USER}"
-loginctl enable-linger "${SERVICE_USER}"
 
 if grep -q '^pre-build-user:' Makefile; then
   info "pre-build-user を実行"
@@ -372,8 +385,7 @@ if grep -q '^env-files-root:' Makefile; then
   make -C "${SERVICE_PATH}" --always-make env-files-root
 fi
 
-info "install 用の unit 一覧を取得"
-mapfile -t user_units_install < <(collect_user_units "${USER_CONTAINER_UNIT_DIR}" "${USER_SYSTEMD_USER_DIR}" || true)
+info "install 用の root unit 一覧を取得"
 mapfile -t root_units_install < <(collect_units -source "${SERVICE_PATH}/systemd" || true)
 
 if [ "${#root_units_install[@]}" -gt 0 ]; then
@@ -391,10 +403,10 @@ if [ "${#root_units_install[@]}" -gt 0 ]; then
   systemctl daemon-reload
 fi
 
-info "user unit を daemon-reload"
-run_user_systemctl daemon-reload
-
 if [ "${#user_units_install[@]}" -gt 0 ]; then
+  info "user unit を daemon-reload"
+  run_user_systemctl daemon-reload
+
   for unit in "${user_units_install[@]}"; do
     if [[ $unit == *.container ]]; then
       # Quadlet 生成ユニット → enable 不可なので start のみ

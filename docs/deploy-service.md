@@ -71,8 +71,11 @@
    - `${INSTALL_ROOT}/scripts/collect-systemd-dropins.sh` で `SERVICES` に含まれる origin サービスの `dropins/systemd/` を収集し、target の user/root unit に drop-in を追加する（drop-in ファイルは `mochi-dropin-*.conf` に統一して、デプロイ時に古い drop-in を掃除する）。自サービスも対象に含める。収集済み drop-in は配布元で置換済みの前提で、収集側では置換しない。
    - 配置後に `chown -R ${SERVICE_USER}:${SERVICE_USER} "${SERVICE_PATH}" "/home/${SERVICE_USER}"` で所有者を揃える。
    - ディレクトリパーミッションは `${SERVICE_PATH}` / `/home/${SERVICE_USER}` 共に `chmod 750` で締める。
-7. enable-linger 処理
-   - 先に `loginctl enable-linger ${SERVICE_USER}` を実行（ユーザーセッションが無くても podman build / systemd --user が動くようにする）。
+7. linger 有効化とマーカーファイル出力
+   - rsync・置換・drop-in 収集の後で、常に `loginctl enable-linger ${SERVICE_USER}` を実行する。rootless Podman のビルドや `systemctl --user` の利用有無にかかわらず、deploy 時点では linger を有効化する前提とする。理由は security_package 等の user systemd サービスは作成しないが podman build を行うサービスでも enable-linger が必要であるため。
+   - 続けて、deploy 先 `/home/${SERVICE_USER}/.config/containers/systemd/` と `/home/${SERVICE_USER}/.config/systemd/user/` に実際に配置された user unit 一覧を収集する。
+   - user unit が 1 件以上あれば `${SERVICE_PATH}/.startup_linger` に `id -u ${SERVICE_USER}` の数値を 1 行だけ書き出す。このファイルは起動時の linger 復旧対象サービスを示すマーカーとして扱う。
+   - user unit が 0 件ならマーカーファイルは作成しない。既存のマーカーファイルは rsync `--delete` により事前に削除される想定とする。
 8. pre-build フック:
    - `grep -q '^pre-build-user:' Makefile` で存在したら `sudo -u ${SERVICE_USER} INSTALL_ROOT=... NFS_ROOT=... SERVICE_PATH=... make -C "${SERVICE_PATH}" pre-build-user`（`cwd` は INSTALL_ROOT 下の `${SERVICE_PATH}`）。
    - `grep -q '^pre-build-root:' Makefile` で存在したら `make -C "${START_DIR}" pre-build-root` を root のまま実行する（`cwd` はリポジトリ上の元ディレクトリ）。
@@ -112,7 +115,7 @@
     - `Makefile` に `env-files-user` / `env-files-root` が定義されている場合、`make -C ${SERVICE_PATH} --always-make env-files-user` / `env-files-root` を root で実行する。
     - `$(SERVICE_PATH)/%.env-user` と `$(SERVICE_PATH)/%.env-root` は `SECRETS_DIR` の同名ファイルからコピーし、`scripts/replace-deploy-vars.sh` でテンプレートを置換する。
 13. systemd 配置:
-- user unit / quadlet / timer: 上記置換済みファイルを前提に `sudo systemctl -M "${SERVICE_USER}@.host" --user daemon-reload` を実行。Podman + SELinux 環境ではローカルディスクの bind mount に `Volume=...:Z` / `Volume=...:ro,Z` を付与する。NFS パスは `docs/UsersSetup.md` の方針に従い、`virt_use_nfs=on` を前提に `:z` / `:Z` を付けない（サービスユーザー間で共有する NFS bind mount のため）。
+- user unit / quadlet / timer: user unit が 1 件以上ある場合のみ、置換済みファイルを前提に `sudo systemctl -M "${SERVICE_USER}@.host" --user daemon-reload` を実行する。Podman + SELinux 環境ではローカルディスクの bind mount に `Volume=...:Z` / `Volume=...:ro,Z` を付与する。NFS パスは `docs/UsersSetup.md` の方針に従い、`virt_use_nfs=on` を前提に `:z` / `:Z` を付けない（サービスユーザー間で共有する NFS bind mount のため）。
     - root unit（例: 80 → 8080 の socket-proxyd）を持つ場合は `${SERVICE_PATH}/systemd/` にあるファイルを `/etc/systemd/system/${SERVICE_PREFIX}-${SERVICE_NAME}-<name>` というファイル名で配置する。`scripts/replace-deploy-vars.sh` で `@@ROOT_UNIT_PREFIX@@` / `@@SERVICE_PATH@@` / `@@INSTALL_ROOT@@` / `@@CERT_DOMAIN@@` を置換したうえで `chmod 0644 && chown root:root`。`sudo systemctl daemon-reload` を忘れずに。
 14. 再起動・有効化:
     - user unit:
