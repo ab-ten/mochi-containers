@@ -27,6 +27,9 @@ useradd -u 20015 -g 20015 trilium
 
 groupadd git_backend -g 20016
 useradd -u 20016 -g 20016 git_backend
+
+groupadd host_services -g 20017
+useradd -u 20017 -g 20017 host_services
 ```
 
 nextcloud/www-data ユーザーID、redmine/redmine グループID、trilium/trilium ユーザーID取得（NFS使用時に必要です）
