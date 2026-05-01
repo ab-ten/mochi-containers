@@ -11,7 +11,8 @@
 - `user-*.conf` はユーザーカスタマイズ用として `.gitignore` に登録済み。drop-in は必ず全削除で上書きされるため、カスタマイズしたい場合は `<service>/dropins/systemd/` 配下に `user-*.conf` として置いてデプロイで反映する。
 - 配置ルートは `INSTALL_ROOT`（例: `/srv/project/`）。各サービスはその直下に `<service>` ディレクトリを持ち、所有者は `<service>:<service>`。サービスユーザーのホームディレクトリは OS 既定の `/home/<service>` を使う（Podman ストレージが OS の変更に追従できるよう `/srv` 配下にホームを置かない）。
 - 必須コマンド: `sudo`, `rsync`, `podman`, `systemctl`（system と --user の両方）。ユーザー情報確認用に `getent` / `id` なども使用可。
-- --user の systemctl 呼び出しは `sudo systemctl -M "<user>@.host" --user ...` を使う（linger 前提）。
+- --user の systemctl 呼び出しは `sudo systemctl -M "<user>@.host" --user ...` を使う。`deploy-service.sh` は deploy 時に常に linger を有効化する。
+- サービス横断 root hook の `make` 呼び出しは `env -i` で実行し、`PATH`, `HOME`, `LANG`, `LC_ALL`, `USER`, `LOGNAME` と、`INSTALL_ROOT`, `NFS_ROOT`, `SERVICE_PREFIX`, `SECRETS_DIR`, `SERVICES`, `CERT_DOMAIN`, `MAP_LOCAL_ADDRESS`, `BASE_REPO_DIR`, `SCRIPT_DIR` のみを引き継ぐ。
 - SELinux 有効環境で NFS を bind mount する場合は `docs/UsersSetup.md` の方針に従う。`virt_use_nfs=on` を前提に、サービスユーザー間で共有する NFS パスの `Volume=` では `:z` / `:Z` を付けない（ローカルディスクの bind mount のみ `:z` / `:Z` を使用）。
 - 環境差異やオーバーライドは考慮不要。ロールバックは git でタグ/コミットを指定して再デプロイする。
 
@@ -89,12 +90,18 @@
    - rsync 後に `dropins/systemd/` 配下の `*.conf` に対して `${INSTALL_ROOT}/scripts/replace-deploy-vars.sh` を適用する（配布元の置換）。
    - `/home/<service>/.config/containers/systemd/` と `/home/<service>/.config/systemd/user/` の unit ファイルに `${INSTALL_ROOT}/scripts/replace-deploy-vars.sh` を適用する（`.d/*.conf` を含む）。
    - 続けて `${INSTALL_ROOT}/scripts/collect-systemd-dropins.sh` が `SERVICES` に含まれる origin から drop-in を収集し、target の user/root unit に配置する。自サービスも含めて収集するため、ユーザーカスタマイズ drop-in も反映される。drop-in は配布元で置換済みの前提で、収集側では置換しない。配置元の `dropins/systemd/` 構成や並び順の注意は `docs/collect-systemd-dropins.md` に整理。
-4) **所有権統一**: `chown -R <service>:<service> INSTALL_ROOT/<service> /home/<service>`。
-5) **linger 有効化**: `loginctl enable-linger <service>`。
+4) **linger 有効化とマーカーファイル出力**:
+   - rsync と drop-in 収集の後で、deploy 先 `/home/<service>/.config/containers/systemd/` と `/home/<service>/.config/systemd/user/` に実際に配置された user unit 一覧を収集する。
+   - 続けて deploy 時は常に `loginctl enable-linger <service>` を実行する。
+   - user unit が 1 件以上あれば `INSTALL_ROOT/<service>/.startup_linger` に `id -u <service>` の数値を 1 行だけ書き込む。
+   - `.startup_linger` は起動時の linger 復旧対象サービスを示すマーカーファイルとして扱う。
+   - user unit が 0 件ならマーカーファイルは作成しない。古いマーカーファイルは rsync `--delete` により消える前提とする。
+5) **所有権統一**: `chown -R <service>:<service> INSTALL_ROOT/<service> /home/<service>`。
 6) **pre-build-user / pre-build-root**: Makefile にターゲットがある場合のみ実行。user 側は `INSTALL_ROOT` / `SERVICE_PATH` を環境で渡してサービスユーザー権限、root 側はそのまま。
    - `pre-build-root` はリポジトリ上のサービスディレクトリを `cwd` にして実行するため、同階層や親ディレクトリへの相対参照を利用できる。
    - `nginx_rp` の `pre-build-root` は `scripts/collect-nginx-conf.sh` で `SERVICES` に含まれる各サービスの `${INSTALL_ROOT}/<service>/http_<service>.conf` / `https_<service>.conf` を `nginx_rp/container/conf/` に集約し、続けて `scripts/generate-index-html.sh` で `nginx_rp/container/html/index.html` を再生成する。`SERVICES` の並びは `ssl_update` → 各サービス → `nginx_rp` の順にしておく。
    - サービス横断 root hook（`pre-build-root-hook-%` / `post-build-root-hook-%`）は hook 定義側サービスの Makefile コンテキストで実行される。デプロイ対象サービスの情報が必要な場合は `HOOK_TARGET_SERVICE_*` を使用する。
+   - hook 実行時は `env -i` により親サービス固有の環境変数を落とすため、`UID_IN_PODMAN` / `GID_IN_PODMAN` のような値は自動継承されない。hook 定義側サービスで必要な値は、そのサービスの `Makefile` または `Makefile.local` に定義する。
    - サービス横断 root hook は `make` の通常更新判定で実行されるため、毎回実行が必要な hook は `.PHONY`（または `FORCE` 依存）を定義する。増分実行を意図する hook は成果物と依存関係を明示して `.PHONY` 化しない。
 7) **replace-files-user / replace-files-root**: `REPLACE_FILES_USER` / `REPLACE_FILES_ROOT` が空でなければ `make replace-files-user` / `make replace-files-root` を実行。
    - `make <service>-deploy` のような単体デプロイでは、`SERVICES` 全体を前提とした関連サービスへの反映は行われない。例えば `make redmine-deploy` のみを実行しても `redmine/https_redmine.conf` は `nginx_rp/container/conf/` に集約されないため、nginx 側への反映が必要な場合は `nginx_rp` を含めて再デプロイする。
@@ -106,8 +113,8 @@
      - 一度でも redmine 込みで deploy した場合は `pending/` にタイムスタンプファイルが touch される。
      - 過去を含めた deploy 全てにおいて redmine が有効ではなかった場合は pending/ が存在しないので何も行われない。
 10) **systemd 配置**:
-   - root unit: `INSTALL_ROOT/<service>/systemd/` のファイルを `/etc/systemd/system/<SERVICE_PREFIX>-<service>-<name>` にコピーし、`replace-deploy-vars.sh` でプレースホルダー置換。0644/root:root にして `systemctl daemon-reload`。
-   - user unit / quadlet / timer: 置換済みファイルを前提に `sudo systemctl -M "<user>@.host" --user daemon-reload`。
+   - root unit: `INSTALL_ROOT/<service>/systemd/` のファイルを `/etc/systemd/system/<SERVICE_PREFIX>-<service>-<name>` にコピーし、`replace-deploy-vars.sh` でプレースホルダー置換する。旧 root unit が存在した場合、または新しい root unit を 1 件以上配置した場合に `systemctl daemon-reload` を実行する。
+   - user unit / quadlet / timer: 旧 user unit が存在した場合、または新しい user unit が 1 件以上ある場合に、置換済みファイルを前提に `sudo systemctl -M "<user>@.host" --user daemon-reload` を実行する。
 11) **起動/再起動**:
     - user unit:
       - `.container` は start のみ（enable 不可）。

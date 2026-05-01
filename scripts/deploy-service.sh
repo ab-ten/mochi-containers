@@ -60,6 +60,35 @@ run_user_make() {
   )
 }
 
+build_cross_service_hook_env_pairs() {
+  local -n pairs_ref=$1
+  local preserve_vars=(
+    PATH
+    HOME
+    LANG
+    LC_ALL
+    USER
+    LOGNAME
+    INSTALL_ROOT
+    NFS_ROOT
+    SERVICE_PREFIX
+    SECRETS_DIR
+    SERVICES
+    CERT_DOMAIN
+    MAP_LOCAL_ADDRESS
+    BASE_REPO_DIR
+    SCRIPT_DIR
+  )
+  local var
+
+  pairs_ref=()
+  for var in "${preserve_vars[@]}"; do
+    if [ -n "${!var-}" ]; then
+      pairs_ref+=("${var}=${!var}")
+    fi
+  done
+}
+
 run_system_systemctl_stop() {
   if (systemctl --no-pager is-active "$1" | grep -q "^active") >/dev/null 2>&1; then
     info "Stopping system unit: $1"
@@ -84,11 +113,14 @@ run_cross_service_root_hooks() {
   local svc
   local svc_dir
   local svc_service_path
+  local hook_env_pairs=()
 
   # サービス横断 root hook は「デプロイ対象サービス」の phase で実行する。
   # hook を定義している側（svc）の Makefile が評価されるため、
   # フック内で SERVICE_NAME/SERVICE_USER/SERVICE_PATH を参照すると svc 側の値になる。
   # デプロイ対象サービスを参照したい場合は HOOK_TARGET_SERVICE_* を使用する。
+  # 親サービス固有の環境変数は引き継がず、必要最小限の変数だけを明示的に渡す。
+  build_cross_service_hook_env_pairs hook_env_pairs
   info "${phase} hook をサービス横断で実行: target=${hook_target}"
   for svc in ${SERVICES}; do
     svc_dir="${BASE_REPO_DIR}/${svc}"
@@ -106,12 +138,13 @@ run_cross_service_root_hooks() {
     # 注意:
     # - SERVICE_PATH は hook 呼び出し元サービス（svc）のパスを渡す。
     # - HOOK_TARGET_SERVICE_* はデプロイ対象サービスの情報を渡す。
-    make --no-print-directory -C "${svc_dir}" \
-      "SERVICE_PATH=${svc_service_path}" \
-      "HOOK_TARGET_SERVICE_NAME=${SERVICE_NAME}" \
-      "HOOK_TARGET_SERVICE_USER=${SERVICE_USER}" \
-      "HOOK_TARGET_SERVICE_PATH=${SERVICE_PATH}" \
-      "${hook_target}"
+    env -i "${hook_env_pairs[@]}" \
+      make --no-print-directory -C "${svc_dir}" \
+        "SERVICE_PATH=${svc_service_path}" \
+        "HOOK_TARGET_SERVICE_NAME=${SERVICE_NAME}" \
+        "HOOK_TARGET_SERVICE_USER=${SERVICE_USER}" \
+        "HOOK_TARGET_SERVICE_PATH=${SERVICE_PATH}" \
+        "${hook_target}"
   done
 }
 
@@ -262,13 +295,30 @@ done
 info "systemd drop-in を収集"
 "${SCRIPT_DIR}/collect-systemd-dropins.sh"
 
+info "install 用の user unit 一覧を取得"
+mapfile -t user_units_install < <(collect_user_units "${USER_CONTAINER_UNIT_DIR}" "${USER_SYSTEMD_USER_DIR}" || true)
+user_needs_daemon_reload=No
+if [ "${#user_units_uninstall[@]}" -gt 0 ] || [ "${#user_units_install[@]}" -gt 0 ]; then
+  user_needs_daemon_reload=Yes
+fi
+
+info "loginctl enable-linger ${SERVICE_USER}"
+loginctl enable-linger "${SERVICE_USER}"
+
+if [ "${#user_units_install[@]}" -gt 0 ]; then
+  service_uid="$(id -u "${SERVICE_USER}")"
+  info "user unit を検出したため ${SERVICE_PATH}/.startup_linger を作成"
+  printf '%s\n' "${service_uid}" > "${SERVICE_PATH}/.startup_linger"
+  chown "${SERVICE_USER}:${SERVICE_USER}" "${SERVICE_PATH}/.startup_linger"
+  chmod 0644 "${SERVICE_PATH}/.startup_linger"
+else
+  info "user unit が無いため .startup_linger は作成しない"
+fi
+
 info "所有権を ${SERVICE_USER}:${SERVICE_USER} に統一"
 chown -R "${SERVICE_USER}:${SERVICE_USER}" "${SERVICE_PATH}" "${SERVICE_HOME}"
 
 cd "${SERVICE_PATH}"
-
-info "loginctl enable-linger ${SERVICE_USER}"
-loginctl enable-linger "${SERVICE_USER}"
 
 if grep -q '^pre-build-user:' Makefile; then
   info "pre-build-user を実行"
@@ -339,9 +389,12 @@ if grep -q '^env-files-root:' Makefile; then
   make -C "${SERVICE_PATH}" --always-make env-files-root
 fi
 
-info "install 用の unit 一覧を取得"
-mapfile -t user_units_install < <(collect_user_units "${USER_CONTAINER_UNIT_DIR}" "${USER_SYSTEMD_USER_DIR}" || true)
+info "install 用の root unit 一覧を取得"
 mapfile -t root_units_install < <(collect_units -source "${SERVICE_PATH}/systemd" || true)
+root_needs_daemon_reload=No
+if [ "${#root_units_uninstall[@]}" -gt 0 ] || [ "${#root_units_install[@]}" -gt 0 ]; then
+  root_needs_daemon_reload=Yes
+fi
 
 if [ "${#root_units_install[@]}" -gt 0 ]; then
   if [ ! -d "${ROOT_UNIT_DEST}" ]; then
@@ -355,11 +408,17 @@ if [ "${#root_units_install[@]}" -gt 0 ]; then
     chown root:root "${ROOT_UNIT_DEST}/${ROOT_UNIT_PREFIX}${unit}"
     info "配置: ${unit} -> ${ROOT_UNIT_PREFIX}${unit} (テンプレート置換済み)"
   done
+fi
+
+if [ "${root_needs_daemon_reload}" = "Yes" ]; then
+  info "root unit を daemon-reload"
   systemctl daemon-reload
 fi
 
-info "user unit を daemon-reload"
-run_user_systemctl daemon-reload
+if [ "${user_needs_daemon_reload}" = "Yes" ]; then
+  info "user unit を daemon-reload"
+  run_user_systemctl daemon-reload
+fi
 
 if [ "${#user_units_install[@]}" -gt 0 ]; then
   for unit in "${user_units_install[@]}"; do
