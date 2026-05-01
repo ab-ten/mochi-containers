@@ -112,8 +112,8 @@
      - 一度でも redmine 込みで deploy した場合は `pending/` にタイムスタンプファイルが touch される。
      - 過去を含めた deploy 全てにおいて redmine が有効ではなかった場合は pending/ が存在しないので何も行われない。
 10) **systemd 配置**:
-   - root unit: `INSTALL_ROOT/<service>/systemd/` のファイルを `/etc/systemd/system/<SERVICE_PREFIX>-<service>-<name>` にコピーし、`replace-deploy-vars.sh` でプレースホルダー置換。0644/root:root にして `systemctl daemon-reload`。
-   - user unit / quadlet / timer: user unit が 1 件以上ある場合のみ、置換済みファイルを前提に `sudo systemctl -M "<user>@.host" --user daemon-reload`。
+   - root unit: `INSTALL_ROOT/<service>/systemd/` のファイルを `/etc/systemd/system/<SERVICE_PREFIX>-<service>-<name>` にコピーし、`replace-deploy-vars.sh` でプレースホルダー置換する。旧 root unit が存在した場合、または新しい root unit を 1 件以上配置した場合に `systemctl daemon-reload` を実行する。
+   - user unit / quadlet / timer: 旧 user unit が存在した場合、または新しい user unit が 1 件以上ある場合に、置換済みファイルを前提に `sudo systemctl -M "<user>@.host" --user daemon-reload` を実行する。
 11) **起動/再起動**:
     - user unit:
       - `.container` は start のみ（enable 不可）。

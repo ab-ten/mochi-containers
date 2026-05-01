@@ -297,6 +297,10 @@ info "systemd drop-in を収集"
 
 info "install 用の user unit 一覧を取得"
 mapfile -t user_units_install < <(collect_user_units "${USER_CONTAINER_UNIT_DIR}" "${USER_SYSTEMD_USER_DIR}" || true)
+user_needs_daemon_reload=No
+if [ "${#user_units_uninstall[@]}" -gt 0 ] || [ "${#user_units_install[@]}" -gt 0 ]; then
+  user_needs_daemon_reload=Yes
+fi
 
 info "loginctl enable-linger ${SERVICE_USER}"
 loginctl enable-linger "${SERVICE_USER}"
@@ -387,6 +391,10 @@ fi
 
 info "install 用の root unit 一覧を取得"
 mapfile -t root_units_install < <(collect_units -source "${SERVICE_PATH}/systemd" || true)
+root_needs_daemon_reload=No
+if [ "${#root_units_uninstall[@]}" -gt 0 ] || [ "${#root_units_install[@]}" -gt 0 ]; then
+  root_needs_daemon_reload=Yes
+fi
 
 if [ "${#root_units_install[@]}" -gt 0 ]; then
   if [ ! -d "${ROOT_UNIT_DEST}" ]; then
@@ -400,13 +408,19 @@ if [ "${#root_units_install[@]}" -gt 0 ]; then
     chown root:root "${ROOT_UNIT_DEST}/${ROOT_UNIT_PREFIX}${unit}"
     info "配置: ${unit} -> ${ROOT_UNIT_PREFIX}${unit} (テンプレート置換済み)"
   done
+fi
+
+if [ "${root_needs_daemon_reload}" = "Yes" ]; then
+  info "root unit を daemon-reload"
   systemctl daemon-reload
 fi
 
-if [ "${#user_units_install[@]}" -gt 0 ]; then
+if [ "${user_needs_daemon_reload}" = "Yes" ]; then
   info "user unit を daemon-reload"
   run_user_systemctl daemon-reload
+fi
 
+if [ "${#user_units_install[@]}" -gt 0 ]; then
   for unit in "${user_units_install[@]}"; do
     if [[ $unit == *.container ]]; then
       # Quadlet 生成ユニット → enable 不可なので start のみ
