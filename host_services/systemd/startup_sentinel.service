@@ -1,0 +1,9 @@
+[Unit]
+Description=Recover missing /run/user runtime directories for lingering services
+ConditionPathExists=@@SERVICE_PATH@@/startup_uid_list
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/bash @@SERVICE_PATH@@/startup_sentinel.sh @@SERVICE_PATH@@/startup_uid_list
+
+#NOSTART

@@ -1,0 +1,10 @@
+[Unit]
+Description=Run startup_sentinel once after system manager startup
+
+[Timer]
+OnActiveSec=5min
+AccuracySec=1min
+RemainAfterElapse=no
+
+[Install]
+WantedBy=timers.target
