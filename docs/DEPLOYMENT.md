@@ -138,11 +138,9 @@ loginctl show-user <service_user> -p Linger -p State -p RuntimePath
 ```
 
 - `Failed to get user: User ID <uid> is not logged in or lingering` が出る場合は、linger 状態が壊れている可能性があります。
-- 以下を順に実行して復旧を試してください。
+- 以下を実行して復旧を試してください。
 
 ```bash
-sudo loginctl disable-linger <service_user>
-sudo loginctl enable-linger <service_user>
 sudo systemctl restart systemd-logind
 ```
 
