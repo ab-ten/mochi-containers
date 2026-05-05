@@ -13,6 +13,7 @@
 - `SERVICE_PATH`: `/srv/project/host_services`
 - 配置先 systemd ディレクトリ: `/etc/systemd/system`
 - unit プレフィックス: `@@ROOT_UNIT_PREFIX@@`
+- `STARTUP_SENTINEL_RECHECK_DELAY`: `systemd-logind` 再起動後に `/run/user/<uid>` を再確認するまでの待機秒数。既定値は `7` 秒で、`host_services/Makefile.local` から上書きできます。
 
 ## ディレクトリ・ボリューム構成
 - `systemd/`: root systemd unit の配布元です。
@@ -25,6 +26,7 @@
 
 ## startup_sentinel
 - `startup_sentinel.sh` は引数で受け取った `${SERVICE_PATH}/startup_uid_list` を読み取り、rootless Podman や user systemd の起動に必要な `/run/user/<uid>` が揃っているか確認します。
+- `startup_sentinel.sh` は第 2 引数で受け取った待機秒数ぶん `systemd-logind` 再起動後に `sleep` してから `/run/user/<uid>` を再確認します。
 - `startup_uid_list` は deploy 時に `SERVICES` を走査し、各サービスの `${INSTALL_ROOT}/<service>/.startup_linger` から収集した UID を `sort -u` 相当で正規化して生成します。
 - `post-build-root` は `startup_uid_list` 生成直後に有効な UID 件数を標準出力へ表示します。
 - `startup_sentinel.service` は root 権限で上記スクリプトを実行します。欠損した `/run/user/<uid>` が 1 件以上ある場合のみ `systemctl restart systemd-logind` を実行し、不要な再起動を避けます。

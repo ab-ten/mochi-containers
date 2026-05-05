@@ -3,6 +3,8 @@ export
 SERVICE_NAME = host_services
 SERVICE_USER = host_services
 NFS_GROUP_CHECK = No
+STARTUP_SENTINEL_RECHECK_DELAY ?= 7
+REPLACE_ADD_VAR = STARTUP_SENTINEL_RECHECK_DELAY
 
 -include Makefile.local
 

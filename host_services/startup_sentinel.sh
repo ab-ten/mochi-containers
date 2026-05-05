@@ -2,12 +2,13 @@
 
 set -euo pipefail
 
-if [ "$#" -ne 1 ]; then
-  echo "usage: $0 <startup_uid_list>" >&2
+if [ "$#" -ne 2 ]; then
+  echo "usage: $0 <startup_uid_list> <recheck_delay_seconds>" >&2
   exit 2
 fi
 
 UID_LIST_FILE="$1"
+RECHECK_DELAY_SECONDS="$2"
 
 log() {
   echo "startup_sentinel: $*"
@@ -16,6 +17,11 @@ log() {
 if [ ! -f "${UID_LIST_FILE}" ]; then
   log "startup_uid_list が存在しないため終了"
   exit 0
+fi
+
+if [[ ! "${RECHECK_DELAY_SECONDS}" =~ ^[0-9]+$ ]]; then
+  log "再確認待機秒数が不正: ${RECHECK_DELAY_SECONDS}"
+  exit 2
 fi
 
 missing_uids=()
@@ -39,6 +45,10 @@ fi
 
 log "欠損した /run/user を検出: ${missing_uids[*]}"
 systemctl restart systemd-logind
+if [ "${RECHECK_DELAY_SECONDS}" -gt 0 ]; then
+  log "systemd-logind 再起動後 ${RECHECK_DELAY_SECONDS} 秒待機"
+  sleep "${RECHECK_DELAY_SECONDS}"
+fi
 
 remaining_uids=()
 for uid in "${missing_uids[@]}"; do

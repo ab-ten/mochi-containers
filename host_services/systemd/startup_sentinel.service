@@ -4,6 +4,6 @@ ConditionPathExists=@@SERVICE_PATH@@/startup_uid_list
 
 [Service]
 Type=oneshot
-ExecStart=/usr/bin/bash @@SERVICE_PATH@@/startup_sentinel.sh @@SERVICE_PATH@@/startup_uid_list
+ExecStart=/usr/bin/bash @@SERVICE_PATH@@/startup_sentinel.sh @@SERVICE_PATH@@/startup_uid_list @@STARTUP_SENTINEL_RECHECK_DELAY@@
 
 #NOSTART

@@ -18,6 +18,7 @@
 - `@@INSTALL_ROOT@@`
 - `@@SERVICE_NAME@@`
 - `@@SERVICE_USER@@`
+- `@@STARTUP_SENTINEL_RECHECK_DELAY@@`
 
 deploy 時に未置換の `@@...@@` が残っている場合はエラーになります。
 
