@@ -6,6 +6,7 @@
 ## 前提・ツール
 - rootless Podman 前提。nginx_rp はコンテナを `-p 8443:443` で待受させ、443/tcp → 8443/tcp は systemd socket activation + systemd-socket-proxyd で転送。
 - rootless で動かす systemd user unit と quadlet (`*.service` / `*.socket` / `*.container` / `*.timer` など) は、リポジトリ上では `<service>/home/.config/containers/systemd/`（Quadlet 系）と `<service>/home/.config/systemd/user/`（timer/service 系）に置き、デプロイ先では `/home/<service>/.config/containers/systemd/` と `/home/<service>/.config/systemd/user/` に配置する。root 権限が要る system unit は `/etc/systemd/system/` 直下に `<SERVICE_PREFIX>-<service>-<name>.service` 形式で置く（ディレクトリは掘らない）。
+- deploy の入口は 2 通りある。通常は `sudo make ...` を使う。公開リポジトリへカスタマイズを混ぜない場合は、`_local/` または `mochi-customize` 側で `deploy-view-build.sh ...` を呼び、`mochi-deploy-view` を経由して `sudo make ...` を実行する。
 - 共通処理に使う `mk/` と `scripts/` は、各サービスの deploy/stop の直前に `prepare-common` で `${INSTALL_ROOT}/` へ `rsync` 同期する。`deploy-service.sh` 内の補助スクリプト参照は `${INSTALL_ROOT}/scripts` を基準にする。
 - systemd drop-in は `<service>/dropins/systemd/` に定義する。配布元（origin）は `user/containers/<target>/...`（quadlet 用）、`user/systemd/<target>/...`（user unit 用）、`root/<target>/...`（root unit 用）に `*.d/*.conf` を置き、デプロイ時に target に収集される（自サービス向けも同様）。
 - `user-*.conf` はユーザーカスタマイズ用として `.gitignore` に登録済み。drop-in は必ず全削除で上書きされるため、カスタマイズしたい場合は `<service>/dropins/systemd/` 配下に `user-*.conf` として置いてデプロイで反映する。
@@ -15,6 +16,21 @@
 - サービス横断 root hook の `make` 呼び出しは `env -i` で実行し、`PATH`, `HOME`, `LANG`, `LC_ALL`, `USER`, `LOGNAME` と、`INSTALL_ROOT`, `NFS_ROOT`, `SERVICE_PREFIX`, `SECRETS_DIR`, `SERVICES`, `CERT_DOMAIN`, `MAP_LOCAL_ADDRESS`, `BASE_REPO_DIR`, `SCRIPT_DIR` のみを引き継ぐ。
 - SELinux 有効環境で NFS を bind mount する場合は `docs/UsersSetup.md` の方針に従う。`virt_use_nfs=on` を前提に、サービスユーザー間で共有する NFS パスの `Volume=` では `:z` / `:Z` を付けない（ローカルディスクの bind mount のみ `:z` / `:Z` を使用）。
 - 環境差異やオーバーライドは考慮不要。ロールバックは git でタグ/コミットを指定して再デプロイする。
+
+## deploy-view ラッパー
+運用手順は `docs/local-customization.md` を参照してください。本節では deploy 実装上の仕様のみを整理します。
+
+- `deploy-view-build.sh` は `mochi-containers` 直下に置き、`$0` のディレクトリを `mochi-containers` ルートとして扱う。
+- カスタマイズディレクトリは、`MOCHI_CUSTOMIZE` が設定されていればそのディレクトリを優先する。未設定で、カレントディレクトリが `mochi-containers` ルート、かつ `_local/` が存在する場合は `./_local/` を使用する。それ以外は既定でカレントディレクトリを使用する。
+- `mochi-deploy-view` は既定で `../mochi-deploy-view` を使用する。`MOCHI_DEPLOY_VIEW` が設定されていればそのディレクトリを優先する。
+- `mochi-deploy-view` は利用者が事前に作成する。`deploy-view-build.sh` は未作成ならエラー終了し、自動作成しない。
+- `SECRETS_DIR` が環境変数で設定されていれば、その値を絶対パスへ正規化して `sudo make` 側へ引き渡す。未設定時はルート `Makefile` の既定値を使用する。
+- view の更新は毎回再生成とする。最初に `mochi-containers` 全体を `rsync --delete` で view へミラーし、その後カスタマイズディレクトリのファイルを追加コピーする。`mochi-containers` 側のミラーでは `/_local/` を除外する。
+- `security_package` のバージョン判定では `mochi-containers` 側の Git メタデータを参照するため、view 生成時は `mochi-containers` 側の `.git` を除外しない。
+- カスタマイズディレクトリは add-only とする。`mochi-containers` と同じ相対パスのファイルや、親パスの型が衝突する追加はエラー終了する。
+- `deploy-view-build.sh` は `sudo make` の前後で view の所有権を実行ユーザーへ戻す。view は生成物であり、直接編集した内容は次回再生成で失われる。
+- 推奨運用は `_local/` を `mochi-containers` 直下に置いてルートから `./deploy-view-build.sh "$@"` を呼ぶ形、または `mochi-customize` 側にラッパースクリプトを置いて最後に `exec ../mochi-containers/deploy-view-build.sh "$@"` を呼ぶ形とする。
+- `mochi-containers` 直下に `_local/` が存在する場合、ルート `Makefile` は直接の `sudo make deploy` と `sudo make <service>-deploy` をエラー終了する。deploy view を経由した場合は view 生成時に `/_local/` が除外されるため、この guard には該当しない。
 
 ## 環境変数
 ### サービス固有変数

@@ -2,6 +2,7 @@
 
 OpenSUSE MicroOS 上で **rootless Podman + systemd user unit** を使用し、**サービス単位のユーザー分離**で運用するセキュリティモデルを検証する実験プロジェクトです。
 `Makefile.local` と systemd drop-in によるカスタマイズを前提としています。
+公開リポジトリへプライベートな差分を混入させないため、`_local/` または別リポジトリ `mochi-customize` を重ねる deploy view 方式も利用できます。
 
 > 本リポジトリは **環境特化の実験プロジェクト** です。汎用のプロダクトではなく、同一の前提条件を持つ方が構成を参考にするために参照する用途を想定しています。
 
@@ -55,6 +56,12 @@ OpenSUSE MicroOS 上で **rootless Podman + systemd user unit** を使用し、*
 - `Makefile.local` に環境依存の差分を集約します
 - `SERVICES` を絞って段階導入します（例: `ssl_update` + `nginx_rp` + `security_package` →  `redmine`, `nextcloud`）
 - `SECRETS_DIR` で DNS API キーなどを管理します
+
+## Customize Repository
+
+- `mochi-containers/_local/` または別リポジトリ `mochi-customize` に、`Makefile.local` や `user-*.conf`、`custom-build.sh` などの追加ファイルだけを配置できます。
+- `deploy-view-build.sh` は `mochi-containers` とカスタマイズディレクトリを `mochi-deploy-view` に合成し、その view 上で `sudo make "$@"` を実行します。
+- 詳細なセットアップ、衝突ルール、環境変数は `docs/local-customization.md` を参照してください。
 
 ---
 
