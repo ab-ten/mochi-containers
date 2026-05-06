@@ -19,8 +19,8 @@ resolve_existing_dir() {
   fi
 
   (
-    cd "${dir_path}"
-    pwd
+    cd -P -- "${dir_path}"
+    pwd -P
   )
 }
 
@@ -28,8 +28,22 @@ is_same_or_within() {
   local lhs="${1%/}"
   local rhs="${2%/}"
 
-  case "${lhs}/" in
-    "${rhs}/"*) return 0 ;;
+  if [ "${1}" = "/" ]; then
+    lhs="/"
+  fi
+  if [ "${2}" = "/" ]; then
+    rhs="/"
+  fi
+
+  if [ "${lhs}" = "${rhs}" ]; then
+    return 0
+  fi
+  if [ "${rhs}" = "/" ]; then
+    return 0
+  fi
+
+  case "${lhs}" in
+    "${rhs}"/*) return 0 ;;
     *) return 1 ;;
   esac
 }
@@ -118,7 +132,7 @@ sync_view() {
     "${customize_root}/" "${view_root}/"
 }
 
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+SCRIPT_DIR="$(cd -P -- "$(dirname "$0")" && pwd -P)"
 CONTAINERS_ROOT="$(resolve_existing_dir "${SCRIPT_DIR}")"
 CURRENT_DIR="$(resolve_existing_dir "$PWD")"
 LOCAL_CUSTOMIZE_ROOT="${CONTAINERS_ROOT}/_local"
@@ -137,6 +151,16 @@ RUN_MAKE=No
 CUSTOMIZE_ROOT="$(resolve_existing_dir "${CUSTOMIZE_ROOT_INPUT}")"
 VIEW_ROOT="$(resolve_existing_dir "${VIEW_ROOT_INPUT}")"
 
+if [ "${CONTAINERS_ROOT}" = "/" ]; then
+  err "mochi-containers に / は指定できません"
+fi
+if [ "${CUSTOMIZE_ROOT}" = "/" ]; then
+  err "カスタマイズディレクトリに / は指定できません"
+fi
+if [ "${VIEW_ROOT}" = "/" ]; then
+  err "mochi-deploy-view に / は指定できません"
+fi
+
 if [ "${CUSTOMIZE_ROOT}" = "${CONTAINERS_ROOT}" ]; then
   err "カスタマイズディレクトリと mochi-containers は別ディレクトリにしてください"
 fi
@@ -153,10 +177,6 @@ fi
 if [ "${CUSTOMIZE_ROOT}" != "${LOCAL_CUSTOMIZE_ROOT}" ] && \
   { is_same_or_within "${CUSTOMIZE_ROOT}" "${CONTAINERS_ROOT}" || is_same_or_within "${CONTAINERS_ROOT}" "${CUSTOMIZE_ROOT}"; }; then
   err "カスタマイズディレクトリと mochi-containers は相互に入れ子にできません"
-fi
-
-if [ "${VIEW_ROOT}" = "/" ]; then
-  err "mochi-deploy-view に / は指定できません"
 fi
 
 if [ "${#}" -eq 0 ]; then
