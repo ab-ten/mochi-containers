@@ -24,7 +24,7 @@
 `git_backend` と `redmine` を連携する場合は、`docs/UsersSetup.md` の「2 段階ディレクトリ（上位ディレクトリ + repos）」の例に従って group と permission を分けてください。
 
 ### 3.3 `Makefile.local` とシークレット
-環境依存の値は `Makefile.local` に定義します。最低限、以下の項目を確認してください。
+環境依存の値は `Makefile.local` に定義します。公開リポジトリへローカル差分を残したくない場合は、`docs/local-customization.md` の方式で `_local/` または別リポジトリ `mochi-customize` を使用できます。最低限、以下の項目を確認してください。
 - `INSTALL_ROOT`（例: `/srv/project`）
 - `NFS_ROOT`（例: `/srv/nfs/containers`）
 - `SECRETS_DIR`（例: `/srv/secrets`）
@@ -49,6 +49,7 @@ SELinux が有効な環境では、`security_package` をデプロイして SELi
 ## 4. リポジトリ準備
 1) リポジトリを取得し、`Makefile.local` を作成します。
 2) `SERVICES` の並び順を決めます（例: `ssl_update → 各サービス → nginx_rp`）。
+3) ローカルカスタマイズを分離する場合は、`docs/local-customization.md` を参照して `mochi-deploy-view` を事前作成します。
 
 ## 5. 最短デプロイ手順
 初回は `SERVICES = ssl_update nginx_rp security_package` を `Makefile.local` に設定し、ルートで `make deploy` を実行します。
@@ -58,6 +59,8 @@ SELinux の場合は、INSTALL_ROOT/rpms に作成された rpm パッケージ�
 ```bash
 sudo make deploy
 ```
+
+`_local/` や `mochi-customize` を使う場合は、`docs/local-customization.md` の手順に従って `deploy-view-build.sh` 経由でデプロイしてください。
 
 `make deploy` は最初に `make earlystop` を実行し、`EARLY_STOP=Yes` が設定されたサービスのみを `SERVICES` の順で先行停止してから、`SERVICES` の順番にデプロイします。現行設定では `trilium` と `nginx_rp` が先行停止対象です。これは `trilium` の websocket セッションを先に終了させ、`nginx_rp` 停止時の graceful shutdown タイムアウトを避けるためです。サービス単体で実行したい場合は `make <service>-deploy` を使用してください（例: `make nginx_rp-deploy`）。
 ただし、`make <service>-deploy` は対象サービスのみを再デプロイするため、関連サービスへの反映は行いません。例えば `make redmine-deploy` だけでは `redmine/https_redmine.conf` は `nginx_rp` に収集されないため、nginx 側反映が必要な変更では `make deploy`（または必要な関連サービスも含めた再デプロイ）を実行してください。
@@ -81,6 +84,7 @@ sudo systemctl -M "<service_user>@.host" --user status <unit>
 ## 8. 次に読む
 - 各サービスの `README.md`
 - `docs/DEPLOYMENT.md`
+- `docs/local-customization.md`
 - `docs/deploy-service.md`
 - `docs/deploy-vars.subr.md`
 - `docs/container-build.md`

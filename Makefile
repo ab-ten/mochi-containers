@@ -5,7 +5,7 @@ SERVICES = ssl_update nextcloud git_backend redmine trilium nginx_rp security_pa
 INSTALL_ROOT = /srv/project
 NFS_ROOT = /srv/nfs/containers
 SERVICE_PREFIX = mochi
-SECRETS_DIR = $(realpath ../secrets)
+SECRETS_DIR ?= $(realpath ../secrets)
 SCRIPT_DIR=${INSTALL_ROOT}/scripts
 CERT_DOMAIN = example.com
 MAP_LOCAL_ADDRESS = 172.22.22.22
@@ -20,12 +20,14 @@ $(error この Makefile は root で実行してください。例: sudo make de
 endif
 
 
-.PHONY: all deploy earlystop stop $(SERVICES) prepare-common intall-pre-commit-hook
+.PHONY: all deploy earlystop stop $(SERVICES) prepare-common guard-no-local-customize install-pre-commit-hook
 
 all:
 	@echo "Available services: $(SERVICES)"
 
-deploy: earlystop $(SERVICES:%=%-deploy)
+deploy: guard-no-local-customize
+	@$(MAKE) earlystop
+	@$(MAKE) $(SERVICES:%=%-deploy)
 
 earlystop: $(SERVICES:%=%-earlystop)
 
@@ -34,8 +36,16 @@ stop: $(SERVICES:%=%-stop)
 prepare-common:
 	@rsync -rtp --chmod=D775 --delete --exclude '*~' ./mk ./scripts ${INSTALL_ROOT}/
 
+guard-no-local-customize:
+	@if [ -d "_local" ]; then \
+	  echo "ERROR: _local/ が存在するため、直接 sudo make deploy は実行できません。" >&2; \
+	  echo "ERROR: ./deploy-view-build.sh deploy を実行してください。" >&2; \
+	  exit 1; \
+	fi
+
 # 下位呼び出し: nginx-deploy, lego-deploy, ...
-%-deploy: prepare-common
+%-deploy: guard-no-local-customize
+	@$(MAKE) prepare-common
 	@SERVICE_PATH="${INSTALL_ROOT}/$*" $(MAKE) -C "$*" deploy
 
 %-stop: prepare-common
@@ -55,6 +65,6 @@ prepare-common:
 
 
 #
-intall-pre-commit-hook: .git/hooks/pre-commit
+install-pre-commit-hook: .git/hooks/pre-commit
 .git/hooks/pre-commit: pre-commit.sh
 	ln -sf ../../pre-commit.sh .git/hooks/pre-commit

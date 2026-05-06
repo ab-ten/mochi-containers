@@ -3,10 +3,10 @@ Makefile.local
 /*/dropins/systemd/user/containers/*/*.d/user-*.conf
 /*/dropins/systemd/user/systemd/*/*.d/user-*.conf
 /*/dropins/systemd/root/*/*.d/user-*.conf
-/ssl_update/home/.config/systemd/user/lego.timer.d/*.conf
-/ssl_update/home/.config/systemd/user/lego.service.d/*.conf
+/*/home/.config/systemd/user/*.d/*.conf
+/*/container/custom-build.sh
+/*/container.*/custom-build.sh
 /denycheck.awk
 /.codex/
 /codex.sh
-/*/container/custom-build.sh
-/*/container.*/custom-build.sh
+/_local/
