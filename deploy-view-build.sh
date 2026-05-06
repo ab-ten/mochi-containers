@@ -40,7 +40,7 @@ should_skip_relpath() {
 
   base_name="$(basename "${rel_path}")"
   case "${rel_path}" in
-    .git|.git/*) return 0 ;;
+    .git|.git/*|README.md) return 0 ;;
     *)
       ;;
   esac

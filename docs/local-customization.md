@@ -95,7 +95,7 @@ MOCHI_DEPLOY_VIEW=/path/to/mochi-deploy-view ./deploy-view-build.sh deploy
 - `mochi-containers` と同じ相対パスのファイルは衝突として扱います。
 - 親パスの型が異なる場合も衝突として扱います。
 - カスタマイズディレクトリ側の `.git/`、`.gitignore`、`*.swp`、`*~` は衝突判定と転送から除外します。
-- カスタマイズディレクトリ側の `/README.md` は転送から除外します。
+- カスタマイズディレクトリ側の `/README.md` は衝突判定と転送から除外します。
 - `mochi-containers` 側の `/_local/` は view 生成時に除外します。
 - `mochi-containers` 側の `.git/` は view に含めます。
 
