@@ -20,7 +20,7 @@ $(error この Makefile は root で実行してください。例: sudo make de
 endif
 
 
-.PHONY: all deploy earlystop stop $(SERVICES) prepare-common guard-no-local-customize intall-pre-commit-hook
+.PHONY: all deploy earlystop stop $(SERVICES) prepare-common guard-no-local-customize install-pre-commit-hook
 
 all:
 	@echo "Available services: $(SERVICES)"
@@ -65,6 +65,6 @@ guard-no-local-customize:
 
 
 #
-intall-pre-commit-hook: .git/hooks/pre-commit
+install-pre-commit-hook: .git/hooks/pre-commit
 .git/hooks/pre-commit: pre-commit.sh
 	ln -sf ../../pre-commit.sh .git/hooks/pre-commit
