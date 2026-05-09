@@ -68,13 +68,6 @@ stop:
 	@echo "Stopping $(SERVICE_NAME)..."
 	@../scripts/deploy-service.sh stop
 
-restart:
-	@echo "Restarting $(SERVICE_NAME)..."
-	@sudo -u $(SERVICE_USER) systemctl --user restart $(SERVICE_NAME).service
-
-status:
-	@sudo -u $(SERVICE_USER) systemctl --user status $(SERVICE_NAME).service
-
 replace-files-user:
 	@if [ -n "$(REPLACE_FILES_USER)" ]; then \
 	  for file in $(REPLACE_FILES_USER); do \
