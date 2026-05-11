@@ -38,7 +38,7 @@
 
 ## 連携メモ
 - 生成された RPM は `transactional-update pkg install` で導入し、再起動が必要です。
-- 旧パッケージ `local-mochi-security-selinux-1.1-2.noarch.rpm` を導入済みの場合は、一度 `local-mochi-security-selinux` をアンインストールしてから `local-mochi-security-selinux-nginx_rp-1.1-2.noarch.rpm` をインストールしてください。
+- 旧パッケージ `local-mochi-security-selinux-1.1-2.noarch.rpm` を導入済みの場合は、一度 `local-mochi-security-selinux` をアンインストールしてから `local-mochi-security-selinux-nginx_rp-1.1-2.noarch.rpm` （より新しいバージョンがある場合はそちらを）をインストールしてください。
 - transactional-update 環境では、例として `sudo transactional-update pkg remove local-mochi-security-selinux` を実行後、`sudo transactional-update pkg install ${INSTALL_ROOT}/rpms/local-mochi-security-selinux-nginx_rp-1.1-2.noarch.rpm` を実行し、再起動してください。
 - SELinux の許可が不足している場合は nginx_rp の起動に失敗します。
 
