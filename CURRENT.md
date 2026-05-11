@@ -49,7 +49,7 @@ project-root/
       # root での service が必要なときに使用（特権ポートの socket acitivation など）
   security_package/
     container/           # SELinux ポリシー RPM をビルドするコンテナ
-    rpmbuild/            # te/spec/VERSION.mk など rpm ソース一式
+    rpmbuild_*/          # te/spec/VERSION.mk など module 別 rpm ソース一式
     out/                 # build-rpm 後の生成物置き場（deploy 時に INSTALL_ROOT/rpms へコピー）
   ssl_update/
     README.md            # lego 実行フローや .env サンプル
@@ -257,7 +257,7 @@ project-root/
 
   * `nginx_rp` / `ssl_update` ともに `mk/services.mk` を include 済みで、`make <service>-deploy` が動く状態。
   * `nginx_rp` の `pre-build-root` は `SERVICES` に含まれる各サービスの `${INSTALL_ROOT}/<service>/http_<service>.conf` / `https_<service>.conf` を集約して `nginx_rp/container/conf/` にコピーするため、`SERVICES` の並びは `ssl_update` → 各サービス → `nginx_rp` の順にしておく。
-  * `security_package` は `NFS_GROUP_CHECK=No` で rpmbuild 用。pre-build-root で LICENSE コピー、`check-version-consistency.sh` 実行、`.package-evr` を生成し、post-build-user で RPM をコンテナ内ビルドして `INSTALL_ROOT/rpms/local-mochi-security-selinux-<evr>.noarch.rpm` を配置する。
+  * `security_package` は `NFS_GROUP_CHECK=No` で rpmbuild 用。pre-build-root で LICENSE コピー、`check-version-consistency.sh` 実行、`.package-evr-<module>` を生成し、post-build-user で `rpmbuild_*` ごとに RPM をコンテナ内ビルドして `INSTALL_ROOT/rpms/` へ配置する。
 
 ---
 
@@ -286,9 +286,10 @@ project-root/
 * [x] ssl_update の lego renew 用 .timer unit を実装し、更新時のみ nginx reload が走ることを確認。
 
 * security_package (SELinux policy RPM) の実運用
-* [x] `make deploy` を回して `local-mochi-security-selinux-<evr>.noarch.rpm` を生成し、`INSTALL_ROOT/rpms/` へ配置。
+* [x] `make deploy` を回して `local-mochi-security-selinux-nginx_rp-<evr>.noarch.rpm` を生成し、`INSTALL_ROOT/rpms/` へ配置。
+* [x] 旧パッケージ `local-mochi-security-selinux-1.1-2.noarch.rpm` から `local-mochi-security-selinux-nginx_rp-1.1-2.noarch.rpm` への移行案内を README に追記。
 * [x] transactional-update でホストにインストールし、443/80 socket-proxy 運用時の AVC を確認。
-* [x] te/spec 更新時は `rpmbuild/VERSION.mk` と `%changelog` の整合を維持（`check-version-consistency.sh` で検出）。
+* [x] te/spec 更新時は対象 `rpmbuild_*/VERSION.mk` と `%changelog` の整合を維持（`check-version-consistency.sh` で検出）。
 
 ### これからの主要マイルストーン
 
