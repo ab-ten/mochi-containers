@@ -21,6 +21,8 @@
 ## サービス固有変数の定義場所
 - サービス固有の make 変数（例: `TRILIUM_PORT`, `DBFILE_DIR` など）は各サービスの `Makefile` で定義して `export` し、ルート `Makefile` では定義しません。
 - 各サービスの `Makefile` では、サービス固有の変数・ターゲットを定義した後、ファイル末尾で `include ../mk/services.mk` を記述してください。
+- `replace-files-user` など user 権限で実行する疑似ターゲットは、`run_user_make` がサービスユーザーで `make` を起動し直して実行します。このとき対象サービスの `Makefile` と `Makefile.local` が再評価されるため、サービス固有変数や `REPLACE_ADD_VAR` は user 側にも反映されます。
+- この設計により、サービス固有変数を `scripts/deploy-vars.subr` の必須変数へ追加して root から user へ明示的に伝播する必要はありません。`deploy-vars.subr` に追加するのは、共通 deploy 処理自体が常に必要とする変数に限定します。
 - root 実行時に `UID_IN_PODMAN` / `GID_IN_PODMAN` を定義するサービスでは、`mk/services.mk` が `print_unshare_id.sh` で導出した `UID_HOST_MAPPED` / `GID_HOST_MAPPED` が空文字列の場合に即時エラー終了します。
 
 ## 必須環境変数
@@ -47,6 +49,7 @@
 - `REPLACE_FILES_USER` / `REPLACE_FILES_ROOT` … 値が空でなければ `replace-files-user` / `replace-files-root` ターゲットを実行するトリガ。
 - `REPLACE_ADD_VAR` … `replace-deploy-vars.sh` の置換対象変数を追加する（例: `REPLACE_ADD_VAR=DEPLOY_ENV` で `@@DEPLOY_ENV@@` を置換）。
 - `run_user_make` に渡す環境変数リストは `scripts/deploy-vars.subr` の `DEPLOY_REQUIRED_VARS` で一元管理する。
+- サービス固有変数は `run_user_make` の環境変数リストに含めず、user 側でサービス Makefile を再評価することで解決する。
 - 必須変数・派生変数の更新手順は `docs/deploy-vars.subr.md` に従う。
 
 ## 期待する依存コマンド
@@ -64,6 +67,7 @@
 5. 配置ディレクトリ準備: ホームは OS 既定の `/home/<service>` を使用。`install -d -o ${SERVICE_USER} -g ${SERVICE_USER} -m 0750` で `${SERVICE_PATH}`、`/home/${SERVICE_USER}`、`/home/${SERVICE_USER}/.config/containers/systemd`、`/home/${SERVICE_USER}/.config/systemd/user` を掘る。
 6. ソース配置（rsync）:
    - ワークツリー → `${SERVICE_PATH}/` へ `rsync -a --delete --exclude '.git' --exclude '*.swp' --exclude '*~' ./ "${SERVICE_PATH}/"`。
+   - `*~` は Emacs の backup ファイルとして扱い、deploy 対象から除外する。
    - `nginx_rp` の `${SERVICE_PATH}/container/conf/` はこの `rsync --delete` で毎回リポジトリ状態へリセットされるため、前回デプロイ時の収集結果は引き継がれません。
    - user unit / quadlet / timer → `/home/${SERVICE_USER}/` へ `rsync -a --delete --exclude '.cache' --exclude '.local' --exclude '*~' "./home/" "/home/${SERVICE_USER}/"`（`.config/containers/systemd/` と `.config/systemd/user/` をまとめて同期。ホームはデプロイ先で直接管理する）。
    - `${INSTALL_ROOT}/scripts/replace-deploy-vars.sh` を `dropins/systemd/` 配下の `*.conf` に適用し、配布元の drop-in を先に置換する。
@@ -97,6 +101,7 @@
    - そのため `make <service>-deploy` の単体実行では、他サービス側で変更した `https_<service>.conf` / `http_<service>.conf` は `nginx_rp` に反映されません。vhost 変更を公開設定へ反映する場合は `make deploy` または `make nginx_rp-deploy` を追加で実行してください。
 10. `replace-files-user` / `replace-files-root`:
    - `REPLACE_FILES_USER` / `REPLACE_FILES_ROOT` が空でなければ `make replace-files-user` / `make replace-files-root` を実行する。
+   - `replace-files-user` はサービスユーザー権限で `make` を起動し直すため、対象サービスの `Makefile.local` を含む Makefile 定義が user 側で再評価される。サービス固有の置換変数はこの仕組みで反映されるため、root から user へ個別に環境変数として引き継がない。
 11. コンテナビルド:
    - `container/` と `container.*` を検出する。
    - `container/` は `localhost/${SERVICE_NAME}:dev`、`container.<suffix>` は `localhost/${SERVICE_NAME}-<suffix>:dev` のタグでビルドする。

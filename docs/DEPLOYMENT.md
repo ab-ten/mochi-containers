@@ -36,6 +36,7 @@
 ### サービス固有変数
 - サービス固有の make 変数（例: `TRILIUM_PORT`, `DBFILE_DIR`, `UID_IN_PODMAN` など）は各サービスの `Makefile` で定義して `export` します。ルート `Makefile` では定義しません。
 - 各サービスの `Makefile` では、`SERVICE_NAME` / `SERVICE_USER` / `SERVICE_PATH` などの変数定義とサービス固有ターゲット定義を行った後、ファイル末尾で `include ../mk/services.mk` を記述してください。
+- `replace-files-user` など user 権限で実行する疑似ターゲットは、サービスユーザーで `make` を起動し直して実行します。そのため、サービスごとの `Makefile` と `Makefile.local` が user 側でも再評価され、サービス固有変数や `REPLACE_ADD_VAR` は root 側から明示的に環境変数として引き継がなくても反映されます。
 - root 実行時に `UID_IN_PODMAN` / `GID_IN_PODMAN` を定義した場合、`mk/services.mk` は `print_unshare_id.sh` で `UID_HOST_MAPPED` / `GID_HOST_MAPPED` を導出します。導出結果が空文字列になった場合は、`pre-build-root` などで不明瞭な失敗になる前に `make` を即時エラー終了します。
 - 共通の環境変数名リストは `scripts/deploy-vars.subr` で一元管理します。
 - `scripts/deploy-vars.subr` の仕様詳細は `docs/deploy-vars.subr.md` を参照します。
@@ -69,7 +70,8 @@
 
 ## ハードコードされた文字列をmake変数・環境変数を用いてパラメータ化する場合
 - 既定値はルート `Makefile` または各サービスの `Makefile` に定義し、`?=` で上書き可能にします。
-- ルート `Makefile` から子 `make` に値を引き渡し、`scripts/deploy-service.sh` の `run_user_make` でも環境変数を伝播します。
+- 複数サービスで共通利用する変数はルート `Makefile` から子 `make` に値を引き渡し、`scripts/deploy-service.sh` の `run_user_make` でも環境変数を伝播します。
+- サービス固有変数は各サービスの `Makefile` / `Makefile.local` に定義し、user 権限の疑似ターゲットでも同じ Makefile を読み直すことで反映します。サービス固有変数を `scripts/deploy-vars.subr` の必須変数へ追加する必要はありません。
 - `scripts/pre-deploy-check.sh` / `scripts/deploy-service.sh` の必須チェックに変数を追加し、パスは末尾スラッシュ除去などの正規化を行います。
 - unit/quadlet/drop-in で参照する場合は `@@VAR@@` 形式に置き換えます。`scripts/deploy-vars.subr` の `DEPLOY_REQUIRED_VARS` にないものはサービスごとの Makefile に変数を追加し、`REPLACE_ADD_VAR` に変数名を追加する事で置換可能になります。
 - 追加した変数は `docs/DEPLOYMENT.md` / `docs/pre-deploy-check.md` / `docs/deploy-service.md` の一覧へ反映し、関連するサービス README を更新します。
@@ -101,7 +103,7 @@
    - root unit は stop/disable 後に `/etc/systemd/system/<SERVICE_PREFIX>-<service>-*` を一括削除してクリーンにする。
    - `deploy-service.sh stop` の場合は停止のみで終了する。
 2) **配置ディレクトリ準備**: `install -d -o <service> -g <service> -m 0750` で `INSTALL_ROOT/<service>`、`/home/<service>`、`/home/<service>/.config/containers/systemd`、`/home/<service>/.config/systemd/user` を作成。
-3) **ソース配置 + 置換**: リポジトリのサービスディレクトリを `rsync -a --delete --exclude '.git' --exclude '*.swp' --exclude '*~' ./ INSTALL_ROOT/<service>/` へ、ホーム配下 (`home/`) があれば `/home/<service>/` に `rsync -a --delete --exclude '.cache' --exclude '.local' --exclude '*~'` で同期。`chmod 750` した後、`${INSTALL_ROOT}/scripts/replace-deploy-vars.sh` で user unit の `@@ROOT_UNIT_PREFIX@@` / `@@SERVICE_PATH@@` / `@@INSTALL_ROOT@@` / `@@CERT_DOMAIN@@` などを実値に置換する（`CERT_DOMAIN` は置換処理が走る場合は実質必須、`REPLACE_ADD_VAR` で追加変数も置換対象にできる）。
+3) **ソース配置 + 置換**: リポジトリのサービスディレクトリを `rsync -a --delete --exclude '.git' --exclude '*.swp' --exclude '*~' ./ INSTALL_ROOT/<service>/` へ、ホーム配下 (`home/`) があれば `/home/<service>/` に `rsync -a --delete --exclude '.cache' --exclude '.local' --exclude '*~'` で同期。`*~` は Emacs の backup ファイルとして扱い、deploy 対象に含めない。`chmod 750` した後、`${INSTALL_ROOT}/scripts/replace-deploy-vars.sh` で user unit の `@@ROOT_UNIT_PREFIX@@` / `@@SERVICE_PATH@@` / `@@INSTALL_ROOT@@` / `@@CERT_DOMAIN@@` などを実値に置換する（`CERT_DOMAIN` は置換処理が走る場合は実質必須、`REPLACE_ADD_VAR` で追加変数も置換対象にできる）。
    - `replace-deploy-vars.sh` は置換後に `@@[A-Z0-9_]+@@` が残っている行を `grep -nE` で出力し、1 件でもヒットした場合はエラー終了する。
    - rsync 後に `dropins/systemd/` 配下の `*.conf` に対して `${INSTALL_ROOT}/scripts/replace-deploy-vars.sh` を適用する（配布元の置換）。
    - `/home/<service>/.config/containers/systemd/` と `/home/<service>/.config/systemd/user/` の unit ファイルに `${INSTALL_ROOT}/scripts/replace-deploy-vars.sh` を適用する（`.d/*.conf` を含む）。
@@ -120,6 +122,7 @@
    - hook 実行時は `env -i` により親サービス固有の環境変数を落とすため、`UID_IN_PODMAN` / `GID_IN_PODMAN` のような値は自動継承されない。hook 定義側サービスで必要な値は、そのサービスの `Makefile` または `Makefile.local` に定義する。
    - サービス横断 root hook は `make` の通常更新判定で実行されるため、毎回実行が必要な hook は `.PHONY`（または `FORCE` 依存）を定義する。増分実行を意図する hook は成果物と依存関係を明示して `.PHONY` 化しない。
 7) **replace-files-user / replace-files-root**: `REPLACE_FILES_USER` / `REPLACE_FILES_ROOT` が空でなければ `make replace-files-user` / `make replace-files-root` を実行。
+   - `replace-files-user` はサービスユーザー権限で `make` を起動し直して実行するため、対象サービスの `Makefile` と `Makefile.local` が user 側で再評価される。サービス固有の置換変数はこの再評価により解決されるため、root 側から `deploy-vars.subr` 経由で個別に引き継ぐ必要はない。
    - `make <service>-deploy` のような単体デプロイでは、`SERVICES` 全体を前提とした関連サービスへの反映は行われない。例えば `make redmine-deploy` のみを実行しても `redmine/https_redmine.conf` は `nginx_rp/container/conf/` に集約されないため、nginx 側への反映が必要な場合は `nginx_rp` を含めて再デプロイする。
 8) **コンテナビルド**: `container/` と `container.*` ディレクトリを検出し、存在するディレクトリごとに `${INSTALL_ROOT}/scripts/container-build.sh` を実行する。`container-build.sh` は `custom-build.sh` があれば優先実行し、なければ共通処理として `podman build` を実行する。`custom-build.sh` が存在して実行不可な場合はエラー終了する。
 9) **post-build-user / post-build-root**: あれば pre-build と同様に実行。

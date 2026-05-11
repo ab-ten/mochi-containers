@@ -3,6 +3,7 @@
 ## Project Structure & Module Organization
 - ルートの `Makefile` でサービス一覧を管理し、`nginx_rp/` が現在のサンプルサービス。今後も `<service>/container`, `<service>/config`, `<service>/systemd`, `<service>/home/.config/containers/systemd/`  を並べる構成を徹底（リポジトリ上の配置）。デプロイ時は user unit / quadlet を `/home/<service>/.config/containers/systemd/` に展開する。
 - 共通ターゲットは `mk/services.mk` に集約。サービス個別の `Makefile` では `SERVICE_NAME`, `SERVICE_USER`, `SERVICE_PATH` を定義して include する。
+- `replace-files-user` など user 権限で実行する疑似ターゲットは、サービスユーザーで `make` を起動し直して対象サービスの `Makefile` / `Makefile.local` を再評価する。サービス固有変数はこの仕組みで user 側へ反映されるため、共通必須変数でない限り `scripts/deploy-vars.subr` へ追加しない。
 - `nginx_rp/container/` 配下はコンテナビルド素材（`Containerfile`, `default.conf`, `html/index.html`）。`config/` や `systemd/` は将来の本番用設定・systemd 連携を置く想定だが、稼働させる user unit / quadlet は `<service>/home/.config/containers/systemd/` に必ず配置する（実際の稼働先は `/home/<service>/.config/containers/systemd/`）。
 - rootless 前提のため、systemd user unit と quadlet（`.service` / `.socket` / `.container` など）は `<service>/home/.config/containers/systemd/` に必ずまとめて配置し、デプロイ時に `/home/<service>/.config/containers/systemd/` へ同期する。user timer / service (`*.timer` など) は systemd 標準の `<service>/home/.config/systemd/user/` に置き、デプロイ時に `/home/<service>/.config/systemd/user/` へ同期する。
 - root での systemd unit が必要な場合は <service>/systemd/ に配置をする（特権ポートへの systemd socket activation を使用したい場合など）
@@ -36,11 +37,12 @@
 - 環境変数ファイル（`.env` / `*.env-user` / `*.env-root`）は、サービスの `Makefile` に `env-files-user` / `env-files-root` が定義され、かつ container quadlet に `EnvironmentFile=` がある場合のみ README に記載してください。両方の条件を満たさないサービスでは、環境変数ファイルに関する記述を行わないでください。
 
 ## ハードコードされた文字列をmake変数・環境変数を用いてパラメータ化する場合
-- 既定値はルート `Makefile` に定義します。ユーザーは必要に応じて git 管理外の Makefile.local を用いてカスタマイズします。
-- ルート `Makefile` から子 `make` に値を必ず引き渡し、`scripts/deploy-service.sh` の `run_user_make` でも環境変数を伝播してください。
+- 複数サービスで共通利用する既定値はルート `Makefile` に定義します。サービス固有の既定値は各サービスの `Makefile` に定義し、ユーザーは必要に応じて git 管理外の `Makefile.local` を用いてカスタマイズします。
+- 共通変数はルート `Makefile` から子 `make` に値を必ず引き渡し、`scripts/deploy-service.sh` の `run_user_make` でも環境変数を伝播してください。サービス固有変数は user 権限でサービス Makefile を再評価する仕組みに委ねます。
 - `scripts/pre-deploy-check.sh` / `scripts/deploy-service.sh` の必須チェックに追加し、パスは末尾スラッシュ除去などの正規化を行ってください。
 - unit/quadlet/drop-in で参照する場合は `@@VAR@@` 形式に置き換えます。`scripts/deploy-vars.subr` の `DEPLOY_REQUIRED_VARS` にないものはサービスごとの Makefile に変数を追加し、`REPLACE_ADD_VAR` に変数名を追加する事で置換可能になります。
 - 変更した変数は `docs/DEPLOYMENT.md` / `docs/pre-deploy-check.md` / `docs/deploy-service.md` の一覧へ追記し、サービスの README も更新してください。
+- `*~` は Emacs の backup ファイルとして扱い、git 管理・deploy 対象に含めない。既存の `.gitignore` と rsync 除外（`--exclude '*~'`）を維持してください。
 
 ## Testing Guidelines
 - 自動テスト基盤は未整備。変更時は `podman build` → `podman run` → `curl` で実際にレスポンスを確認。
