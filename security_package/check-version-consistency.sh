@@ -1,15 +1,21 @@
 #!/usr/bin/env bash
+set -euo pipefail
 
-TE="rpmbuild/SOURCES/local_mochi_security.te"
-SPEC="${1:-rpmbuild/SPECS/local-mochi-security-selinux.spec}"
-VERREL="rpmbuild/VERSION.mk"
+RPMBUILD_DIR="${1:?usage: check-version-consistency.sh rpmbuild_<module>}"
+VERREL="${RPMBUILD_DIR}/VERSION.mk"
+SPEC="${RPMBUILD_DIR}/$(make -s -f "$VERREL" print-rpm-spec)"
+mapfile -t VERSION_CHECK_INPUTS < <(make -s -f "$VERREL" print-rpm-version-check-inputs)
+VERSION_CHECK_PATHS=()
+for input in "${VERSION_CHECK_INPUTS[@]}"; do
+  VERSION_CHECK_PATHS+=("${RPMBUILD_DIR}/${input}")
+done
 
 git="git -c safe.directory=$(realpath ..)"
-changed_core="$($git diff --name-only -- "$TE" "$SPEC")"
+changed_core="$($git diff --name-only -- "${VERSION_CHECK_PATHS[@]}")"
 changed_ver="$($git diff --name-only -- "$VERREL")"
 
 if [ -n "$changed_core" ] && [ -z "$changed_ver" ]; then
-  echo "ERROR: $TE or $SPEC changed but VERSION/RELEASE not bumped."
+  echo "ERROR: ${RPMBUILD_DIR} inputs changed but VERSION/RELEASE not bumped."
   exit 1
 fi
 
