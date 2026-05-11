@@ -1,8 +1,9 @@
 %global selinuxtype targeted
 %{!?pkgver:%{error:pkgver is required. Pass --define "pkgver X.Y"}}
 %{!?pkgrelease:%{error:pkgrelease is required. Pass --define "pkgrelease N"}}
+%{!?rpmname:%{error:rpmname is required. Pass --define "rpmname NAME"}}
 
-Name:           local-mochi-security-selinux
+Name:           %{rpmname}
 Version:        %{pkgver}
 Release:        %{pkgrelease}%{?dist}
 Summary:        Local SELinux policy module for systemd-socket-proxyd port forwarding
