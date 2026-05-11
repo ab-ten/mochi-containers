@@ -24,8 +24,7 @@ RPM_BUILD_INPUTS := \
 module_build: $(RPM_TARGET)
 
 $(RPM_TARGET): $(RPM_BUILD_INPUTS)
-	sudo -u "${SERVICE_USER}" \
-	  podman run --rm \
+	podman run --rm \
 	  -e RPM_NAME="$(RPM_NAME)" \
 	  -e RPM_SPEC="$(RPM_SPEC)" \
 	  -v ${CWD}/build.sh:/build.sh:ro,Z \
