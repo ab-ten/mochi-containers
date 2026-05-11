@@ -77,6 +77,7 @@ OpenSUSE MicroOS 上で **rootless Podman + systemd user unit** を使用し、*
   - `security_package/README.md`
   - `host_services/README.md`
 - Nextcloud のアップグレード対応メモは `nextcloud/Migration-2026-0425.md` を参照してください
+- security_package の生成する rpm ファイル名を変更しました。旧パッケージ `local-mochi-security-selinux-1.1-2.noarch.rpm` を導入済みの場合は `security_package/README.md` の「連携メモ」の項目をご覧ください。
 
 ---
 

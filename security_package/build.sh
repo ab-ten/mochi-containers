@@ -6,13 +6,16 @@ mkdir -p /rpmbuild/BUILD /rpmbuild/BUILDROOT /rpmbuild/RPMS /rpmbuild/SRPMS
 
 PKGVER="$(make -s -f VERSION.mk print-pkgver)"
 PKGREL="$(make -s -f VERSION.mk print-pkgrel)"
+RPM_NAME="${RPM_NAME:-$(make -s -f VERSION.mk print-rpm-name)}"
+RPM_SPEC="${RPM_SPEC:-$(make -s -f VERSION.mk print-rpm-spec)}"
 
 # Build
 rpmbuild -bb \
   --define "_topdir /rpmbuild" \
+  --define "rpmname ${RPM_NAME}" \
   --define "pkgver ${PKGVER}" \
   --define "pkgrelease ${PKGREL}" \
-  /rpmbuild/SPECS/local-mochi-security-selinux.spec
+  "/rpmbuild/${RPM_SPEC}"
 
 # Export artifacts
 mkdir -p /out
