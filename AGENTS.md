@@ -4,6 +4,7 @@
 - ルートの `Makefile` でサービス一覧を管理し、`nginx_rp/` が現在のサンプルサービス。今後も `<service>/container`, `<service>/config`, `<service>/systemd`, `<service>/home/.config/containers/systemd/`  を並べる構成を徹底（リポジトリ上の配置）。デプロイ時は user unit / quadlet を `/home/<service>/.config/containers/systemd/` に展開する。
 - 共通ターゲットは `mk/services.mk` に集約。サービス個別の `Makefile` では `SERVICE_NAME`, `SERVICE_USER`, `SERVICE_PATH` を定義して include する。
 - `replace-files-user` など user 権限で実行する疑似ターゲットは、サービスユーザーで `make` を起動し直して対象サービスの `Makefile` / `Makefile.local` を再評価する。サービス固有変数はこの仕組みで user 側へ反映されるため、共通必須変数でない限り `scripts/deploy-vars.subr` へ追加しない。
+- コンテナ内で実行するスクリプトは `<service>/scripts/` に配置しない。コンテナ内で使用するスクリプトは `<service>/container/` 配下、または用途別のコンテナ資材ディレクトリに配置し、`<service>/scripts/` はホスト側で実行する運用スクリプトに限定する。
 - `nginx_rp/container/` 配下はコンテナビルド素材（`Containerfile`, `default.conf`, `html/index.html`）。`config/` や `systemd/` は将来の本番用設定・systemd 連携を置く想定だが、稼働させる user unit / quadlet は `<service>/home/.config/containers/systemd/` に必ず配置する（実際の稼働先は `/home/<service>/.config/containers/systemd/`）。
 - rootless 前提のため、systemd user unit と quadlet（`.service` / `.socket` / `.container` など）は `<service>/home/.config/containers/systemd/` に必ずまとめて配置し、デプロイ時に `/home/<service>/.config/containers/systemd/` へ同期する。user timer / service (`*.timer` など) は systemd 標準の `<service>/home/.config/systemd/user/` に置き、デプロイ時に `/home/<service>/.config/systemd/user/` へ同期する。
 - root での systemd unit が必要な場合は <service>/systemd/ に配置をする（特権ポートへの systemd socket activation を使用したい場合など）
