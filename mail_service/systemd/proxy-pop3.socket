@@ -1,0 +1,10 @@
+[Unit]
+Description=mail_service POP3 Proxy Socket (port @@MAIL_POP3_PUBLIC_PORT@@)
+Documentation=man:systemd.socket(5)
+
+[Socket]
+ListenStream=@@MAIL_POP3_PUBLIC_PORT@@
+Accept=false
+
+[Install]
+WantedBy=sockets.target
