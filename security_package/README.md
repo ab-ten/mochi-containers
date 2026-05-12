@@ -39,6 +39,8 @@
 
 ## 連携メモ
 - 生成された RPM は `transactional-update pkg install` で導入し、再起動が必要です。
+- RPM の更新判定は EVR に対応する成果物ファイルの有無で行います。`build.sh` や `build-with-container.mk` のタイムスタンプ変更だけでは、既存 EVR の RPM は再ビルドされません。
+- policy source、spec、またはビルドシステムの変更を RPM に反映する場合は、対象 `rpmbuild_*/VERSION.mk` の `PKGVER` または `PKGREL` を更新してください。
 - 旧パッケージ `local-mochi-security-selinux-1.1-2.noarch.rpm` を導入済みの場合は、一度 `local-mochi-security-selinux` をアンインストールしてから `local-mochi-security-selinux-nginx_rp-1.1-2.noarch.rpm` （より新しいバージョンがある場合はそちらを）をインストールしてください。
 - transactional-update 環境では、例として `sudo transactional-update pkg remove local-mochi-security-selinux` を実行後、`sudo transactional-update pkg install ${INSTALL_ROOT}/rpms/local-mochi-security-selinux-nginx_rp-1.1-2.noarch.rpm` を実行し、再起動してください。
 - mail_service 用 RPM は `mochi_mail_high_port_t` 型を追加し、systemd-socket-proxyd が SMTP、POP3、Submission のホスト側ポートを bind して backend high port へ connect するための許可を提供します。`mochi_mail_high_port_t` へのポート割り当ては mail_service デプロイ時に行います。
@@ -46,4 +48,5 @@
 
 ## トラブルシュート / 注意点
 - ポリシー更新時は対象 `rpmbuild_*/VERSION.mk` の `PKGREL` 更新と `%changelog` の追記が必要です。
+- ビルドシステムの変更で既存 RPM を作り直す必要がある場合も、対象 `rpmbuild_*/VERSION.mk` の EVR を更新してください。
 - `check-version-consistency.sh` で更新漏れを検知できます。

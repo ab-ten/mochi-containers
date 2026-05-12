@@ -13,17 +13,14 @@ PACKAGE_EVR_FILE ?= .package-evr-$(MODULE)
 PACKAGE_EVR ?= $(shell cat "$(PACKAGE_EVR_FILE)")
 RPMBUILD_DIR := rpmbuild_$(MODULE)
 RPM_TARGET := ${INSTALL_ROOT}/rpms/$(RPM_NAME)-$(PACKAGE_EVR).$(RPM_ARCH).rpm
-RPM_BUILD_INPUTS := \
-	build.sh \
-	build-with-container.mk \
-	$(RPMBUILD_DIR)/VERSION.mk \
-	$(addprefix $(RPMBUILD_DIR)/,$(RPM_SPEC) $(RPM_SOURCES))
 
 .PHONY: module_build
 
 module_build: $(RPM_TARGET)
 
-$(RPM_TARGET): $(RPM_BUILD_INPUTS)
+# RPM の更新判定は EVR に対応する成果物ファイルの有無で行います。
+# policy source、spec、ビルドシステムを変更した場合は、対象 VERSION.mk の EVR を更新してください。
+$(RPM_TARGET):
 	podman run --rm \
 	  -e RPM_NAME="$(RPM_NAME)" \
 	  -e RPM_SPEC="$(RPM_SPEC)" \
