@@ -1,0 +1,26 @@
+FROM docker.io/debian:bookworm-slim
+
+ARG MAIL_SOCKET_GID=4096
+ARG VMAIL_UID=1000
+ARG VMAIL_GID=1000
+
+RUN set -eux; \
+    groupadd -g "${MAIL_SOCKET_GID}" mail_service_sock; \
+    groupadd -g "${VMAIL_GID}" vmail; \
+    useradd -u "${VMAIL_UID}" -g "${VMAIL_GID}" -d /var/mail/vhosts -s /usr/sbin/nologin vmail; \
+    usermod -a -G mail_service_sock vmail; \
+    apt-get update; \
+    DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+      ca-certificates \
+      dovecot-core \
+      dovecot-lmtpd \
+      dovecot-pop3d; \
+    rm -rf /var/lib/apt/lists/*
+
+COPY entrypoint.sh /usr/local/sbin/mail-dovecot-entrypoint
+RUN chmod 0755 /usr/local/sbin/mail-dovecot-entrypoint
+
+EXPOSE 110
+
+ENTRYPOINT ["/usr/local/sbin/mail-dovecot-entrypoint"]
+CMD ["dovecot", "-F"]

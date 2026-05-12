@@ -1,0 +1,22 @@
+[Unit]
+Description=dovecot container (rootless)
+After=network-online.target
+Wants=network-online.target
+
+[Container]
+Image=localhost/mail_service-dovecot:dev
+Pull=never
+ContainerName=dovecot
+PublishPort=127.0.0.1:@@MAIL_POP3_BACKEND_PORT@@:110
+Volume=@@MAIL_SOCKET_VOLUME@@:/run/mail-service
+Volume=@@MAIL_MAILDIR@@:/var/mail/vhosts:Z
+Volume=@@SERVICE_PATH@@/generated/dovecot/dovecot.conf:/etc/dovecot/dovecot.conf:ro,Z
+Volume=@@SERVICE_PATH@@/generated/dovecot/users.passwd:/etc/dovecot/users.passwd:ro,Z
+
+[Service]
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=40
+
+[Install]
+WantedBy=default.target
