@@ -1,0 +1,61 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+SERVICE_USER="@@SERVICE_USER@@"
+DOVECOT_IMAGE="localhost/@@SERVICE_NAME@@-dovecot:dev"
+
+err() {
+  echo "mail-service-create-user-passwd: $*" >&2
+  exit 1
+}
+
+usage() {
+  echo "Usage: $0 <user@example.com>" >&2
+  exit 1
+}
+
+if [ "$#" -ne 1 ]; then
+  usage
+fi
+
+mail_user="$1"
+case "${mail_user}" in
+  ""|*:*|*$'\n'*)
+    err "mail user must be a non-empty passwd-file username without ':'"
+    ;;
+esac
+
+if [ -t 0 ]; then
+  printf "Password: " >&2
+  IFS= read -r -s password
+  printf "\n" >&2
+  printf "Password again: " >&2
+  IFS= read -r -s password_again
+  printf "\n" >&2
+else
+  err "password must be entered from a terminal"
+fi
+
+[ -n "${password}" ] || err "password must not be empty"
+[ "${password}" = "${password_again}" ] || err "passwords do not match"
+
+run_doveadm_pw() {
+  podman run --rm --entrypoint doveadm "${DOVECOT_IMAGE}" \
+    pw -s SHA512-CRYPT -p "${password}"
+}
+
+if [ "$(id -un)" = "${SERVICE_USER}" ]; then
+  hash="$(run_doveadm_pw)"
+else
+  hash="$(cd / && printf "%s\n" "${password}" | sudo -u "${SERVICE_USER}" env \
+    DOVECOT_IMAGE="${DOVECOT_IMAGE}" \
+    bash -c 'IFS= read -r password; podman run --rm --entrypoint doveadm "${DOVECOT_IMAGE}" pw -s SHA512-CRYPT -p "${password}"')"
+fi
+
+case "${hash}" in
+  "{SHA512-CRYPT}"*) ;;
+  *) err "unexpected doveadm output: ${hash}" ;;
+esac
+
+printf "%s:%s\n" "${mail_user}" "${hash}"

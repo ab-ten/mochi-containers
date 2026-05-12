@@ -1,0 +1,11 @@
+[Unit]
+Description=mail_service POP3 Proxy via systemd-socket-proxyd
+Documentation=man:systemd-socket-proxyd(1)
+Requires=@@ROOT_UNIT_PREFIX@@proxy-pop3.socket
+After=@@ROOT_UNIT_PREFIX@@proxy-pop3.socket
+
+[Service]
+ExecStart=/usr/lib/systemd/systemd-socket-proxyd 127.0.0.1:@@MAIL_POP3_BACKEND_PORT@@
+PrivateTmp=yes
+
+#FORCESTART

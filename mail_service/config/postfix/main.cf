@@ -1,0 +1,38 @@
+compatibility_level = 3.6
+
+myhostname = @@MAIL_HOSTNAME@@
+mydomain = @@MAIL_DOMAIN@@
+myorigin = $mydomain
+
+inet_interfaces = all
+inet_protocols = ipv4
+mydestination = localhost
+mynetworks = @@MAIL_MYNETWORKS@@
+
+local_transport = error:local delivery is disabled
+relay_domains =
+
+smtpd_banner = $myhostname ESMTP
+smtpd_relay_restrictions = permit_mynetworks, reject_unauth_destination
+smtpd_recipient_restrictions = permit_mynetworks, reject_unauth_destination
+
+smtpd_sasl_auth_enable = yes
+smtpd_sasl_type = dovecot
+smtpd_sasl_path = /run/mail-service/dovecot-auth
+broken_sasl_auth_clients = yes
+
+virtual_mailbox_domains = @@MAIL_DOMAIN@@
+virtual_mailbox_base = /var/mail/vhosts
+virtual_mailbox_maps = hash:/etc/postfix/virtual_mailbox
+virtual_alias_maps = hash:/etc/postfix/virtual_alias
+virtual_transport = lmtp:unix:/run/mail-service/dovecot-lmtp
+
+transport_maps = hash:/etc/postfix/transport
+smtp_sasl_auth_enable = yes
+smtp_sasl_password_maps = hash:/etc/postfix/relay_sasl_passwd
+smtp_sasl_security_options = noanonymous
+smtp_tls_security_level = none
+
+disable_vrfy_command = yes
+append_dot_mydomain = no
+readme_directory = no

@@ -1,0 +1,25 @@
+FROM docker.io/debian:bookworm-slim
+
+ARG MAIL_SOCKET_GID=4096
+
+RUN set -eux; \
+    groupadd -g "${MAIL_SOCKET_GID}" mail_service_sock; \
+    apt-get update; \
+    DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+      ca-certificates \
+      libsasl2-modules \
+      postfix; \
+    usermod -a -G mail_service_sock postfix; \
+    chown -R postfix:postfix /var/lib/postfix; \
+    chown root:postdrop /usr/sbin/postqueue /usr/sbin/postdrop; \
+    chmod 2755 /usr/sbin/postqueue /usr/sbin/postdrop; \
+    cp -a /var/spool/postfix /var/spool/postfix-template; \
+    rm -rf /var/lib/apt/lists/*
+
+COPY entrypoint.sh /usr/local/sbin/mail-postfix-entrypoint
+RUN chmod 0755 /usr/local/sbin/mail-postfix-entrypoint
+
+EXPOSE 25
+
+ENTRYPOINT ["/usr/local/sbin/mail-postfix-entrypoint"]
+CMD ["postfix", "start-fg"]

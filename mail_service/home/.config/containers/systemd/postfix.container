@@ -1,0 +1,31 @@
+[Unit]
+Description=postfix container (rootless)
+After=network-online.target dovecot.service
+Wants=network-online.target
+Requires=dovecot.service
+
+[Container]
+Image=localhost/mail_service-postfix:dev
+Pull=never
+ContainerName=postfix
+PublishPort=127.0.0.1:@@MAIL_SMTP_BACKEND_PORT@@:25
+Volume=@@MAIL_SOCKET_VOLUME@@:/run/mail-service
+Volume=@@MAIL_QUEUEDIR@@:/var/spool/postfix:Z
+Volume=@@SERVICE_PATH@@/generated/postfix/main.cf:/etc/postfix/main.cf:ro,Z
+Volume=@@SERVICE_PATH@@/generated/postfix/master.cf:/etc/postfix/master.cf:ro,Z
+Volume=@@SERVICE_PATH@@/generated/postfix/virtual_mailbox:/etc/postfix/virtual_mailbox:ro,Z
+Volume=@@SERVICE_PATH@@/generated/postfix/virtual_mailbox.db:/etc/postfix/virtual_mailbox.db:ro,Z
+Volume=@@SERVICE_PATH@@/generated/postfix/virtual_alias:/etc/postfix/virtual_alias:ro,Z
+Volume=@@SERVICE_PATH@@/generated/postfix/virtual_alias.db:/etc/postfix/virtual_alias.db:ro,Z
+Volume=@@SERVICE_PATH@@/generated/postfix/transport:/etc/postfix/transport:ro,Z
+Volume=@@SERVICE_PATH@@/generated/postfix/transport.db:/etc/postfix/transport.db:ro,Z
+Volume=@@SERVICE_PATH@@/generated/postfix/relay_sasl_passwd:/etc/postfix/relay_sasl_passwd:ro,Z
+Volume=@@SERVICE_PATH@@/generated/postfix/relay_sasl_passwd.db:/etc/postfix/relay_sasl_passwd.db:ro,Z
+
+[Service]
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=40
+
+[Install]
+WantedBy=default.target

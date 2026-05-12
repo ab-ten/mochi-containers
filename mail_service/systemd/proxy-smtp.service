@@ -1,0 +1,11 @@
+[Unit]
+Description=mail_service SMTP Proxy via systemd-socket-proxyd
+Documentation=man:systemd-socket-proxyd(1)
+Requires=@@ROOT_UNIT_PREFIX@@proxy-smtp.socket
+After=@@ROOT_UNIT_PREFIX@@proxy-smtp.socket
+
+[Service]
+ExecStart=/usr/lib/systemd/systemd-socket-proxyd 127.0.0.1:@@MAIL_SMTP_BACKEND_PORT@@
+PrivateTmp=yes
+
+#FORCESTART
