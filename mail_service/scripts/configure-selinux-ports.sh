@@ -1,8 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
-set -x
+
 port_type="mochi_mail_high_port_t"
-semanage_err_file="/tmp/mochi-mail-semanage-port.err"
 
 err() {
   echo "configure-selinux-ports: $*" >&2
@@ -58,16 +57,21 @@ delete_existing_ports() {
 }
 
 add_port() {
-  port="$1"
+  local port="$1"
+  local semanage_err_file
+
+  semanage_err_file="$(mktemp)" || err "failed to create temporary file"
+  trap 'rm -f "${semanage_err_file}"; trap - RETURN' RETURN
 
   if ! semanage port -a -t "${port_type}" -p tcp "${port}" 2>"${semanage_err_file}"; then
     cat "${semanage_err_file}" >&2
-    err "failed to assign ${port}/tcp to ${port_type}. Check conflicting local SELinux port definitions."
+    return 1
   fi
-  rm -f "${semanage_err_file}"
 }
 
 check_port_type_installed
 delete_existing_ports
-add_port "${MAIL_SMTP_BACKEND_PORT}"
-add_port "${MAIL_POP3_BACKEND_PORT}"
+add_port "${MAIL_SMTP_BACKEND_PORT}" \
+  || err "failed to assign ${MAIL_SMTP_BACKEND_PORT}/tcp to ${port_type}. Check conflicting local SELinux port definitions."
+add_port "${MAIL_POP3_BACKEND_PORT}" \
+  || err "failed to assign ${MAIL_POP3_BACKEND_PORT}/tcp to ${port_type}. Check conflicting local SELinux port definitions."
