@@ -128,7 +128,6 @@ example.org smtp:[smtp.provider.example]:587
 
 ## トラブルシュート / 注意点
 - `MAIL_MAILDIR` と `MAIL_QUEUEDIR` は NFS ではなくローカルディスク上に配置してください。
-- SELinux 有効環境では `pre-build-root` が `MAIL_STATE_DIR` に `container_file_t` を設定します。
 - `configure-selinux-ports` が `mochi_mail_high_port_t` の割り当てに失敗する場合は、`local-mochi-mail-security-selinux` RPM が導入済みか確認してください。
 - `virtual_*` や `transport` を変更した場合は再デプロイしてください。deploy 時に postfix コンテナの `postmap` で `.db` を生成します。
 - 初期状態は平文認証です。LAN 外へ公開しないでください。
