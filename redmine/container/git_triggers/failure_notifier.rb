@@ -2,14 +2,13 @@
 
 module GitTriggers
   module FailureNotifier
+    DEFAULT_FAILURE_HOOK = "/usr/local/lib/git_triggers/notify-slack.sh"
+
     module_function
 
     def notify(repo_name:, repo_path:, error_message:, error_class:, logger: nil)
-      failure_hook = ENV.fetch("GIT_TRIGGERS_FAILURE_HOOK", "").strip
-      if failure_hook.empty?
-        logger&.call(:debug, "failure hook skipped for #{repo_name}: GIT_TRIGGERS_FAILURE_HOOK is empty")
-        return true
-      end
+      failure_hook = ENV.fetch("GIT_TRIGGERS_FAILURE_HOOK", DEFAULT_FAILURE_HOOK).strip
+      failure_hook = DEFAULT_FAILURE_HOOK if failure_hook.empty?
 
       env = {
         "GIT_TRIGGERS_REPO_NAME" => repo_name,

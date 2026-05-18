@@ -17,7 +17,7 @@ text="Systemd unit failed: ${unit_name} (result=${service_result}, exit_code=${e
 curl -fsS -X POST 'https://slack.com/api/chat.postMessage' \
   -d "token=${SLACK_TOKEN}" \
   -d "channel=${SLACK_CHANNEL}" \
-  --data-urlencode "text=${text}"
+  --data-urlencode "text=${text}" || true
 
 # curl が失敗してもエラーにはしない
 exit 0

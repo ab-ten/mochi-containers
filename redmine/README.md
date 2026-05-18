@@ -110,10 +110,10 @@ changeset 更新失敗通知と systemd `OnFailure=` 通知は同じ `SECRETS_DI
 - `redmine-git-triggers-worker.path` は host 側 `@@INSTALL_ROOT@@/git_triggers/pending` が非空になると oneshot worker service を起動します。
 - `redmine-git-triggers-worker.service` の `OnFailure=` は sample drop-in で任意に有効化できます。通知 service 自体は `#NOSTART` 付きなので、`OnFailure=` から参照された時だけ起動されます。
 - `processing/` に残った queue は自動回復しません。必要に応じて内容を確認し、手動で `pending/` へ戻して再投入してください。
-- `GIT_TRIGGERS_FAILURE_HOOK` が空でない場合、changeset 更新失敗時に hook を `repo_name` と `error_message` を引数にして実行します。追加で `GIT_TRIGGERS_REPO_NAME`、`GIT_TRIGGERS_REPO_PATH`、`GIT_TRIGGERS_ERROR_MESSAGE`、`GIT_TRIGGERS_ERROR_CLASS` を環境変数として渡します。
+- changeset 更新失敗時は、既定で `/usr/local/lib/git_triggers/notify-slack.sh` を `repo_name` と `error_message` を引数にして実行します。追加で `GIT_TRIGGERS_REPO_NAME`、`GIT_TRIGGERS_REPO_PATH`、`GIT_TRIGGERS_ERROR_MESSAGE`、`GIT_TRIGGERS_ERROR_CLASS` を環境変数として渡します。`GIT_TRIGGERS_FAILURE_HOOK` を指定した場合は、その hook で既定 hook を上書きします。
 - `worker.rb -f` は queue 処理を行わず、実運用と同じ notifier 経路でテスト用失敗通知を 1 回送信します。
-- `container/git_triggers/` はコンテナへ `/usr/local/lib/git_triggers` として bind mount されるため、`notify-slack.sh` は追加の unit 変更なしで hook に指定できます。
-- `notify-systemd-failure-slack.sh` は host 側 user systemd service から実行され、`redmine.env-user` の `SLACK_TOKEN` / `SLACK_CHANNEL` を使用して通知します。未設定時は通知をスキップして 0 で終了します。
+- `notify-slack.sh` は `SLACK_TOKEN` と `SLACK_CHANNEL` の両方が設定されている場合のみ Slack API へ通知します。どちらかが未設定の場合は通知をスキップして 0 で終了します。
+- `notify-systemd-failure-slack.sh` は host 側 user systemd service から実行され、`slack.env-user` の `SLACK_TOKEN` / `SLACK_CHANNEL` を使用して通知します。未設定時は通知をスキップして 0 で終了します。
 
 ## トラブルシュート / 注意点
 - NFS の権限が不足する場合は `make -C redmine print-uid-gid` またはリポジトリルートで `make redmine-get-uid` / `make redmine-get-gid` を実行して UID/GID を確認し、`NFS_ROOT/redmine` の所有権と権限を調整してください。
