@@ -77,6 +77,17 @@
 - 追加した変数は `docs/DEPLOYMENT.md` / `docs/pre-deploy-check.md` / `docs/deploy-service.md` の一覧へ反映し、関連するサービス README を更新します。
 - `scripts/deploy-vars.subr` を変更した場合は `docs/deploy-vars.subr.md` も必ず更新します。
 
+## Slack 通知用 environment file の共通仕様
+- `mk/services.mk` は Slack 通知用の共通変数として `SLACK_NOTIFICATION` と `SLACK_NOTIFICATION_ENV` を定義します。
+- `SLACK_NOTIFICATION` の共通既定値は `No` です。Slack 通知を実装しているサービスは、サービス側 `Makefile` で `SLACK_NOTIFICATION = Yes` を既定値として定義できます。
+- `Makefile.local` などで `SLACK_NOTIFICATION = No` を指定すると、`SECRETS_DIR/slack.env-user` が存在しても Slack 通知用 environment file は配置されず、unit からも読み込まれません。
+- `SLACK_NOTIFICATION=Yes` かつ `SECRETS_DIR/slack.env-user` が存在する場合のみ、`${SERVICE_PATH}/slack.env-user` を user environment file として配置します。配置後の所有者はサービスユーザー、権限は `0600` です。
+- 判定には `${SERVICE_PATH}/slack.env-user` の存在を使用しません。user unit / quadlet のテンプレート置換は `env-files-user` より前に実行されるため、判定時点では `${SERVICE_PATH}/slack.env-user` がまだ存在しない場合があります。
+- user unit / quadlet / root unit で Slack 通知用 environment file を任意読み込みにする場合は、該当 unit に `@@SLACK_NOTIFICATION_ENV@@` を記述します。
+- `@@SLACK_NOTIFICATION_ENV@@` は、Slack 通知が有効な場合に `EnvironmentFile=${SERVICE_PATH}/slack.env-user` へ置換されます。無効な場合、または `SECRETS_DIR/slack.env-user` が存在しない場合は `# NO_SLACK_NOTIFICATION` へ置換されます。
+- `SLACK_NOTIFICATION_ENV` は `mk/services.mk` で `REPLACE_ADD_VAR` に追加されるため、`replace-deploy-vars.sh` の未置換 placeholder 検出は維持されます。
+- `slack.env-user` には Slack 通知の共通シークレットのみを記述します。現時点の標準変数は `SLACK_TOKEN` と `SLACK_CHANNEL` です。通知 hook の有効化変数など、サービス固有の設定は各サービスの README に従ってください。
+
 ## サービス追加時のドキュメント更新
 - 新しいサービスを `SERVICES` に追加した場合は、ルート `README.md` の「Services and Customization」に `<service>/README.md` を追記してください。
 - 同時に、追加したサービスの `README.md`（`<service>/README.md`）を作成または更新してください。

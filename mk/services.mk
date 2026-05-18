@@ -5,6 +5,15 @@
 
 # 共通ターゲット: deploy / stop / restart / status など
 EARLY_STOP ?= No
+SLACK_NOTIFICATION ?= No
+SLACK_NOTIFICATION_ENV := \# NO_SLACK_NOTIFICATION
+REPLACE_ADD_VAR += SLACK_NOTIFICATION_ENV
+
+ifeq ($(SLACK_NOTIFICATION),Yes)
+ifneq ($(wildcard $(SECRETS_DIR)/slack.env-user),)
+SLACK_NOTIFICATION_ENV := EnvironmentFile=${SERVICE_PATH}/slack.env-user
+endif
+endif
 
 ifeq ($(shell id -u),0)
 ifneq ($(strip $(UID_IN_PODMAN)),)
@@ -92,6 +101,12 @@ pre-build-root-hook-%:
 post-build-root-hook-%:
 	@:
 
+env-files-user:
+	@:
+
+env-files-root:
+	@:
+
 $(SERVICE_PATH)/%.env-user: $(SECRETS_DIR)/%.env-user
 	install -o "$(SERVICE_USER)" -g "$(SERVICE_USER)" -m 600 "$<" "$@"
 	../scripts/replace-deploy-vars.sh "$@"
@@ -103,3 +118,9 @@ $(SERVICE_PATH)/%.env-root: $(SECRETS_DIR)/%.env-root
 	../scripts/replace-deploy-vars.sh "$@"
 	chown "root:root" $@
 	chmod 600 $@
+
+ifeq ($(SLACK_NOTIFICATION),Yes)
+ifneq ($(wildcard $(SECRETS_DIR)/slack.env-user),)
+env-files-user: ${SERVICE_PATH}/slack.env-user
+endif
+endif

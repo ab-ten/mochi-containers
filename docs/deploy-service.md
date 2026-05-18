@@ -118,8 +118,10 @@
    - フック内で `INSTALL_ROOT/<service>` 配下を参照する場合の順序依存・ファイル不在の可能性は、pre-build フックと同様に考慮する。
    - nginx 系なら `post-build-user` で `podman run --rm localhost/${SERVICE_NAME}:dev nginx -t` で構文チェックを行うことが期待される。
 13. 環境変数ファイルの配置:
-    - `Makefile` に `env-files-user` / `env-files-root` が定義されている場合、`make -C ${SERVICE_PATH} --always-make env-files-user` / `env-files-root` を root で実行する。
+    - `make -C ${SERVICE_PATH} --always-make env-files-user` / `env-files-root` を root で常に実行する。`mk/services.mk` に no-op の既定ターゲットが定義されているため、サービス側で環境変数ファイルを定義しない場合もエラーにはならない。
     - `$(SERVICE_PATH)/%.env-user` と `$(SERVICE_PATH)/%.env-root` は `SECRETS_DIR` の同名ファイルからコピーし、`scripts/replace-deploy-vars.sh` でテンプレートを置換する。
+    - `SLACK_NOTIFICATION=Yes` かつ `SECRETS_DIR/slack.env-user` が存在する場合、`mk/services.mk` の共通定義により `env-files-user` に `${SERVICE_PATH}/slack.env-user` が追加される。
+    - `SLACK_NOTIFICATION=No`、または `SECRETS_DIR/slack.env-user` が存在しない場合、`${SERVICE_PATH}/slack.env-user` は配置されない。この判定では、テンプレート置換時点で未配置の可能性がある `${SERVICE_PATH}/slack.env-user` は使用しない。
 14. systemd 配置:
 - user unit / quadlet / timer: 旧 user unit が存在した場合、または新しい user unit が 1 件以上ある場合に、置換済みファイルを前提に `sudo systemctl -M "${SERVICE_USER}@.host" --user daemon-reload` を実行する。削除のみの deploy でも systemd に unit file の消滅を再読込させるため、uninstall 側だけでも reload 対象に含める。Podman + SELinux 環境ではローカルディスクの bind mount に `Volume=...:Z` / `Volume=...:ro,Z` を付与する。NFS パスは `docs/UsersSetup.md` の方針に従い、`virt_use_nfs=on` を前提に `:z` / `:Z` を付けない（サービスユーザー間で共有する NFS bind mount のため）。
     - root unit（例: 80 → 8080 の socket-proxyd）を持つ場合は `${SERVICE_PATH}/systemd/` にあるファイルを `/etc/systemd/system/${SERVICE_PREFIX}-${SERVICE_NAME}-<name>` というファイル名で配置する。`scripts/replace-deploy-vars.sh` で `@@ROOT_UNIT_PREFIX@@` / `@@SERVICE_PATH@@` / `@@INSTALL_ROOT@@` / `@@CERT_DOMAIN@@` を置換したうえで `chmod 0644 && chown root:root`。旧 root unit が存在した場合、または新しい root unit を 1 件以上配置した場合に `sudo systemctl daemon-reload` を実行する。
@@ -169,6 +171,7 @@ user unit / quadlet / root unit のテンプレート置換は `scripts/replace-
 - `@@SERVICE_PATH@@` / `@@INSTALL_ROOT@@` … user unit / root unit 両方で `${SERVICE_PATH}` / `${INSTALL_ROOT}` に置換（bind mount のパス指定などで使用）
 - `@@CERT_DOMAIN@@` … `${CERT_DOMAIN}` に置換（証明書ドメインなどに使用）
 - `@@MAP_LOCAL_ADDRESS@@` … `${MAP_LOCAL_ADDRESS}` に置換（pasta の `--map-host-loopback` や proxy の upstream 指定で使用）
+- `@@SLACK_NOTIFICATION_ENV@@` … `SLACK_NOTIFICATION=Yes` かつ `SECRETS_DIR/slack.env-user` が存在する場合は `EnvironmentFile=${SERVICE_PATH}/slack.env-user` に置換し、それ以外の場合は `# NO_SLACK_NOTIFICATION` に置換。user unit / quadlet / root unit で Slack 通知用 environment file を任意読み込みするために使用。
 - `@@<任意の追加変数>@@` … `REPLACE_ADD_VAR` によって追加された変数名が置換対象になる（例: `REPLACE_ADD_VAR=DEPLOY_ENV` なら `@@DEPLOY_ENV@@` が置換される）
 
 ### 拡張方法
