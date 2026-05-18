@@ -16,6 +16,7 @@
 ## 主要パラメータ一覧
 - `SERVICE_PATH`: `/srv/project/redmine`
 - `REDMINE_PORT`: ホスト側公開ポート（既定: 9001）
+- `SLACK_NOTIFICATION`: Slack 通知用 `slack.env-user` の読み込み制御（既定: `Yes`）
 - `NFS_ROOT/redmine/files`: 添付ファイル用永続領域
 - `CERT_DOMAIN`: vhost 名に使用
 - `MAP_LOCAL_ADDRESS`: nginx upstream の接続先に使用
@@ -35,6 +36,9 @@
 ## 環境変数・シークレット
 - `SECRETS_DIR/redmine.env-user` を `${SERVICE_PATH}/redmine.env-user` に 600 で配置します。
 - Redmine 公式イメージの環境変数をこのファイルに記述します。
+- Redmine では `SLACK_NOTIFICATION=Yes` を既定とします。`SECRETS_DIR/slack.env-user` が存在する場合のみ、通知用 environment file が unit に追加されます。
+- `SECRETS_DIR/slack.env-user` が存在しても Slack 通知を使用しない場合は、`Makefile.local` などで `SLACK_NOTIFICATION=No` を指定します。
+- `SLACK_NOTIFICATION` と `@@SLACK_NOTIFICATION_ENV@@` の共通仕様は `docs/DEPLOYMENT.md` を参照してください。
 
 ### `SECRETS_DIR/redmine.env-user` サンプル
 ```env
@@ -46,15 +50,15 @@ REDMINE_DB_ENCODING=utf8
 RAILS_ENV=production
 ```
 
-Slack 通知を有効にする場合のみ、以下を追加してください。
+Slack の token/channel は `SECRETS_DIR/redmine.env-user` ではなく、`SECRETS_DIR/slack.env-user` に記述します。
 
+### `SECRETS_DIR/slack.env-user` サンプル
 ```env
-GIT_TRIGGERS_FAILURE_HOOK=/usr/local/lib/git_triggers/notify-slack.sh
 SLACK_TOKEN=<slack-bot-token>
 SLACK_CHANNEL=<channel-id>
 ```
 
-systemd `OnFailure=` 通知のみを使う場合は、`SLACK_TOKEN` と `SLACK_CHANNEL` だけで動作します。
+changeset 更新失敗通知と systemd `OnFailure=` 通知は同じ `SECRETS_DIR/slack.env-user` を使用します。`SLACK_NOTIFICATION=Yes` かつ `SECRETS_DIR/slack.env-user` が存在する場合のみ、`${SERVICE_PATH}/slack.env-user` に 600 で配置され、container unit と通知 service unit の両方から読み込まれます。
 
 ## systemd / quadlet / timer 構成
 - `home/.config/containers/systemd/redmine.container`
@@ -62,6 +66,7 @@ systemd `OnFailure=` 通知のみを使う場合は、`SLACK_TOKEN` と `SLACK_C
   - `Volume=@@NFS_ROOT@@/redmine/files:/usr/src/redmine/files:Z`（NFS 運用では `docs/UsersSetup.md` の方針に従い `:z` / `:Z` を付けません）
   - `Volume=@@SERVICE_PATH@@/container/git_triggers:/usr/local/lib/git_triggers:ro,Z`
   - `EnvironmentFile=@@SERVICE_PATH@@/redmine.env-user`
+  - `@@SLACK_NOTIFICATION_ENV@@`
 - `home/.config/systemd/user/redmine-git-triggers-worker.service`
   - `Type=oneshot`
   - `ExecStart=/usr/bin/podman exec redmine /usr/local/lib/git_triggers/worker.rb -v`
@@ -71,6 +76,7 @@ systemd `OnFailure=` 通知のみを使う場合は、`SLACK_TOKEN` と `SLACK_C
 - `home/.config/systemd/user/redmine-git-triggers-worker-failure-notify.service`
   - `Type=oneshot`
   - `EnvironmentFile=@@SERVICE_PATH@@/redmine.env-user`
+  - `@@SLACK_NOTIFICATION_ENV@@`
   - `ExecStart=@@SERVICE_PATH@@/container/git_triggers/notify-systemd-failure-slack.sh redmine-git-triggers-worker.service`
   - `#NOSTART` により deploy 時の自動起動を抑止
 - `dropins/systemd/user/systemd/redmine/redmine-git-triggers-worker.service.d/user-onfailure-slack.conf.sample`

@@ -11,6 +11,7 @@ PublishPort=127.0.0.1:@@REDMINE_PORT@@:3000
 Volume=@@NFS_ROOT@@/redmine/files:/usr/src/redmine/files:Z
 Volume=@@SERVICE_PATH@@/container/git_triggers:/usr/local/lib/git_triggers:ro,Z
 EnvironmentFile=@@SERVICE_PATH@@/redmine.env-user
+@@SLACK_NOTIFICATION_ENV@@
 
 [Service]
 Restart=on-failure
