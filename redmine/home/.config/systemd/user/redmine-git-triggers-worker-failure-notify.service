@@ -5,5 +5,5 @@ Description=Notify Redmine git trigger worker failure
 [Service]
 Type=oneshot
 EnvironmentFile=@@SERVICE_PATH@@/redmine.env-user
+@@SLACK_NOTIFICATION_ENV@@
 ExecStart=@@SERVICE_PATH@@/container/git_triggers/notify-systemd-failure-slack.sh redmine-git-triggers-worker.service
-

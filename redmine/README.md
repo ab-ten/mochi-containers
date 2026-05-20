@@ -16,6 +16,7 @@
 ## 主要パラメータ一覧
 - `SERVICE_PATH`: `/srv/project/redmine`
 - `REDMINE_PORT`: ホスト側公開ポート（既定: 9001）
+- `SLACK_NOTIFICATION`: Slack 通知用 `slack.env-user` の読み込み制御（既定: `Yes`）
 - `NFS_ROOT/redmine/files`: 添付ファイル用永続領域
 - `CERT_DOMAIN`: vhost 名に使用
 - `MAP_LOCAL_ADDRESS`: nginx upstream の接続先に使用
@@ -35,6 +36,9 @@
 ## 環境変数・シークレット
 - `SECRETS_DIR/redmine.env-user` を `${SERVICE_PATH}/redmine.env-user` に 600 で配置します。
 - Redmine 公式イメージの環境変数をこのファイルに記述します。
+- Redmine では `SLACK_NOTIFICATION=Yes` を既定とします。`SECRETS_DIR/slack.env-user` が存在する場合のみ、通知用 environment file が unit に追加されます。
+- `SECRETS_DIR/slack.env-user` が存在しても Slack 通知を使用しない場合は、`Makefile.local` などで `SLACK_NOTIFICATION=No` を指定します。
+- `SLACK_NOTIFICATION` と `@@SLACK_NOTIFICATION_ENV@@` の共通仕様は `docs/DEPLOYMENT.md` を参照してください。
 
 ### `SECRETS_DIR/redmine.env-user` サンプル
 ```env
@@ -46,15 +50,15 @@ REDMINE_DB_ENCODING=utf8
 RAILS_ENV=production
 ```
 
-Slack 通知を有効にする場合のみ、以下を追加してください。
+Slack の token/channel は `SECRETS_DIR/redmine.env-user` ではなく、`SECRETS_DIR/slack.env-user` に記述します。
 
+### `SECRETS_DIR/slack.env-user` サンプル
 ```env
-GIT_TRIGGERS_FAILURE_HOOK=/usr/local/lib/git_triggers/notify-slack.sh
 SLACK_TOKEN=<slack-bot-token>
 SLACK_CHANNEL=<channel-id>
 ```
 
-systemd `OnFailure=` 通知のみを使う場合は、`SLACK_TOKEN` と `SLACK_CHANNEL` だけで動作します。
+changeset 更新失敗通知と systemd `OnFailure=` 通知は同じ `SECRETS_DIR/slack.env-user` を使用します。`SLACK_NOTIFICATION=Yes` かつ `SECRETS_DIR/slack.env-user` が存在する場合のみ、`${SERVICE_PATH}/slack.env-user` に 600 で配置され、container unit と通知 service unit の両方から読み込まれます。
 
 ## systemd / quadlet / timer 構成
 - `home/.config/containers/systemd/redmine.container`
@@ -62,6 +66,7 @@ systemd `OnFailure=` 通知のみを使う場合は、`SLACK_TOKEN` と `SLACK_C
   - `Volume=@@NFS_ROOT@@/redmine/files:/usr/src/redmine/files:Z`（NFS 運用では `docs/UsersSetup.md` の方針に従い `:z` / `:Z` を付けません）
   - `Volume=@@SERVICE_PATH@@/container/git_triggers:/usr/local/lib/git_triggers:ro,Z`
   - `EnvironmentFile=@@SERVICE_PATH@@/redmine.env-user`
+  - `@@SLACK_NOTIFICATION_ENV@@`
 - `home/.config/systemd/user/redmine-git-triggers-worker.service`
   - `Type=oneshot`
   - `ExecStart=/usr/bin/podman exec redmine /usr/local/lib/git_triggers/worker.rb -v`
@@ -71,6 +76,7 @@ systemd `OnFailure=` 通知のみを使う場合は、`SLACK_TOKEN` と `SLACK_C
 - `home/.config/systemd/user/redmine-git-triggers-worker-failure-notify.service`
   - `Type=oneshot`
   - `EnvironmentFile=@@SERVICE_PATH@@/redmine.env-user`
+  - `@@SLACK_NOTIFICATION_ENV@@`
   - `ExecStart=@@SERVICE_PATH@@/container/git_triggers/notify-systemd-failure-slack.sh redmine-git-triggers-worker.service`
   - `#NOSTART` により deploy 時の自動起動を抑止
 - `dropins/systemd/user/systemd/redmine/redmine-git-triggers-worker.service.d/user-onfailure-slack.conf.sample`
@@ -104,10 +110,10 @@ systemd `OnFailure=` 通知のみを使う場合は、`SLACK_TOKEN` と `SLACK_C
 - `redmine-git-triggers-worker.path` は host 側 `@@INSTALL_ROOT@@/git_triggers/pending` が非空になると oneshot worker service を起動します。
 - `redmine-git-triggers-worker.service` の `OnFailure=` は sample drop-in で任意に有効化できます。通知 service 自体は `#NOSTART` 付きなので、`OnFailure=` から参照された時だけ起動されます。
 - `processing/` に残った queue は自動回復しません。必要に応じて内容を確認し、手動で `pending/` へ戻して再投入してください。
-- `GIT_TRIGGERS_FAILURE_HOOK` が空でない場合、changeset 更新失敗時に hook を `repo_name` と `error_message` を引数にして実行します。追加で `GIT_TRIGGERS_REPO_NAME`、`GIT_TRIGGERS_REPO_PATH`、`GIT_TRIGGERS_ERROR_MESSAGE`、`GIT_TRIGGERS_ERROR_CLASS` を環境変数として渡します。
+- changeset 更新失敗時は、既定で `/usr/local/lib/git_triggers/notify-slack.sh` を `repo_name` と `error_message` を引数にして実行します。追加で `GIT_TRIGGERS_REPO_NAME`、`GIT_TRIGGERS_REPO_PATH`、`GIT_TRIGGERS_ERROR_MESSAGE`、`GIT_TRIGGERS_ERROR_CLASS` を環境変数として渡します。`GIT_TRIGGERS_FAILURE_HOOK` を指定した場合は、その hook で既定 hook を上書きします。
 - `worker.rb -f` は queue 処理を行わず、実運用と同じ notifier 経路でテスト用失敗通知を 1 回送信します。
-- `container/git_triggers/` はコンテナへ `/usr/local/lib/git_triggers` として bind mount されるため、`notify-slack.sh` は追加の unit 変更なしで hook に指定できます。
-- `notify-systemd-failure-slack.sh` は host 側 user systemd service から実行され、`redmine.env-user` の `SLACK_TOKEN` / `SLACK_CHANNEL` を使用して通知します。未設定時は通知をスキップして 0 で終了します。
+- `notify-slack.sh` は `SLACK_TOKEN` と `SLACK_CHANNEL` の両方が設定されている場合のみ Slack API へ通知します。どちらかが未設定の場合は通知をスキップして 0 で終了します。
+- `notify-systemd-failure-slack.sh` は host 側 user systemd service から実行され、`slack.env-user` の `SLACK_TOKEN` / `SLACK_CHANNEL` を使用して通知します。未設定時は通知をスキップして 0 で終了します。
 
 ## トラブルシュート / 注意点
 - NFS の権限が不足する場合は `make -C redmine print-uid-gid` またはリポジトリルートで `make redmine-get-uid` / `make redmine-get-gid` を実行して UID/GID を確認し、`NFS_ROOT/redmine` の所有権と権限を調整してください。

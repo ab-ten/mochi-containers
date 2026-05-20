@@ -79,6 +79,7 @@ OpenSUSE MicroOS 上で **rootless Podman + systemd user unit** を使用し、*
   - `host_services/README.md`
 - Nextcloud のアップグレード対応メモは `nextcloud/Migration-2026-0425.md` を参照してください
 - security_package の生成する rpm ファイル名を変更しました。旧パッケージ `local-mochi-security-selinux-1.1-2.noarch.rpm` を導入済みの場合は `security_package/README.md` の「連携メモ」の項目をご覧ください。
+- PR #24 の変更により、Redmine の changeset 更新失敗通知では `GIT_TRIGGERS_FAILURE_HOOK` が空の場合も未指定として扱われ、Slack API 設定（`SLACK_TOKEN` / `SLACK_CHANNEL`）が有効であれば既定の Slack 通知 hook が実行されます。Slack 通知を無効化する場合は redmine/Makefile.local で `SLACK_NOTIFICATION=No` を指定してください。
 
 ---
 

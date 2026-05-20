@@ -379,15 +379,11 @@ if grep -q '^post-build-root:' Makefile; then
 fi
 run_cross_service_root_hooks post-build-root
 
-if grep -q '^env-files-user:' Makefile; then
-  info "env-files-user を実行"
-  make -C "${SERVICE_PATH}" --always-make env-files-user
-fi
+info "env-files-user を実行"
+make -C "${SERVICE_PATH}" --always-make env-files-user
 
-if grep -q '^env-files-root:' Makefile; then
-  info "env-files-root を実行"
-  make -C "${SERVICE_PATH}" --always-make env-files-root
-fi
+info "env-files-root を実行"
+make -C "${SERVICE_PATH}" --always-make env-files-root
 
 info "install 用の root unit 一覧を取得"
 mapfile -t root_units_install < <(collect_units -source "${SERVICE_PATH}/systemd" || true)
