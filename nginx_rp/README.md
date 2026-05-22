@@ -6,7 +6,7 @@
 
 ## 前提と依存関係
 - サービスユーザーは `nginx_rp` です。
-- 証明書は `ssl_update` により `INSTALL_ROOT/ssl_share/certificates` に配置される前提です。
+- 証明書は `ssl_update` により `INSTALL_ROOT/ssl_share/nginx_rp/certs.tar` として配布される前提です。
 - 特権ポート 80/443 の待ち受けは root systemd unit を使用します。
 - `MAP_LOCAL_ADDRESS` を使って pasta の host loopback をコンテナに渡します。
 
@@ -22,15 +22,17 @@
 - `container/conf/`: サイト設定（bind mount）
 - `container/html/`: 静的コンテンツ（bind mount）
 - `${SERVICE_PATH}/http_<service>.conf` / `https_<service>.conf`: サービス別 vhost 設定
-- `${INSTALL_ROOT}/ssl_share/certificates`: `/var/ssl_share/certificates` に bind mount
+- `${INSTALL_ROOT}/ssl_share/nginx_rp`: `/var/ssl_share/nginx_rp` に read-only bind mount
 
 ## systemd / quadlet / timer 構成
 - `home/.config/containers/systemd/nginx_rp.container`
   - `PublishPort=127.0.0.1:8080:80` / `127.0.0.1:8443:443`
-  - `@@SERVICE_PATH@@/container/*` と `@@INSTALL_ROOT@@/ssl_share/certificates` を bind mount
+  - `@@SERVICE_PATH@@/container/*` と `@@INSTALL_ROOT@@/ssl_share/nginx_rp` を bind mount
   - `Network=pasta:--map-host-loopback=@@MAP_LOCAL_ADDRESS@@`
 - `home/.config/systemd/user/cert-reload.path` / `cert-reload.service`
-  - `@@INSTALL_ROOT@@/ssl_share/certificates/.cert-updated` の更新を監視し、`/root/reload.sh` を実行
+  - `@@INSTALL_ROOT@@/ssl_share/nginx_rp/marker.updated` の更新を監視し、`/root/reload.sh` を実行
+  - `systemd.path` は dotfile を監視対象から除外する場合があるため、更新 marker には `.updated` ではなく `marker.updated` を使用します。
+  - path unit を実行する `nginx_rp` ユーザーが marker まで読み取り・探索できるよう、`ssl_share` など中間ディレクトリには `rx` 権限が必要です。
 - `systemd/proxy-80.*` / `systemd/proxy-443.*`
   - root systemd の socket activation で 80/443 を 127.0.0.1:8080/8443 に転送
   - `@@ROOT_UNIT_PREFIX@@` を `${SERVICE_PREFIX}-${SERVICE_NAME}-` に置換
@@ -41,7 +43,7 @@
 - ログ: `sudo journalctl -M "nginx_rp@.host" --user -u nginx_rp.service`
 
 ## 連携メモ
-- `container/10-sites-symlink.sh` が `/etc/nginx/sites-available` から `conf.d` へ symlink を作成します。
+- `container/10-sites-symlink.sh` が `/var/ssl_share/nginx_rp/certs.tar` を `/run/nginx-certs` に展開し、`/etc/nginx/sites-available` から `conf.d` へ symlink を作成します。
 - `http_*.conf` は常時有効、`https_*.conf` は証明書ファイルが揃った場合のみ有効化します。
 - `pre-build-root` が `SERVICES` に含まれる各サービスの `http_*.conf` / `https_*.conf` を集約し、`container/conf/` に配置します。
 - deploy 時は `rsync -a --delete` が先に実行されるため、`container/conf/` は毎回初期化されたうえで再収集されます。

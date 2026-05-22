@@ -210,7 +210,7 @@ project-root/
 
 * `go-acme/lego` コンテナ（rootless）
 * DNS-01 challenge（例: Cloudflare や Route53 など DNS プロバイダに合わせた driver）
-* lego 用ディレクトリ `/srv/project/ssl_share/` を `ssl_update` 所有で作成し、nginx 側は bind mount で参照
+* lego 用ディレクトリ `/srv/project/ssl_share/production/` を `ssl_update` 所有で作成し、nginx 側は配布済みアーカイブを bind mount で参照
 * `--path /lego` などで保存先指定し、初回取得は `podman run` を手動実行
 
 ### 5.2 更新フローと reload 連携
@@ -282,7 +282,7 @@ project-root/
 * [x] lego コンテナで初回証明書取得 (`run`) を実施し、nginx 用に bind mount。
 * [x] nginx の SSL 設定を証明書参照に切り替え、`https://` でのアクセス確認。
 * [x] nginx の 443→8443 socket/proxy を設定。
-* [x] nginx_rp 側の bind mount 設定と reload 連携の整備（`.cert-updated` トリガー活用）。
+* [x] nginx_rp 側の bind mount 設定と reload 連携の整備（配布済み `certs.tar` と `marker.updated` トリガー活用）。
 * [x] ssl_update の lego renew 用 .timer unit を実装し、更新時のみ nginx reload が走ることを確認。
 
 * security_package (SELinux policy RPM) の実運用
