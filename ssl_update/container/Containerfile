@@ -1,4 +1,5 @@
 FROM docker.io/goacme/lego
 
-# デフォルトの nginx 起動
+RUN apk add --no-cache curl diffutils tar util-linux
+
 ENTRYPOINT ["/bin/sh"]
