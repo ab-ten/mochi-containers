@@ -13,7 +13,7 @@ Volume=@@SERVICE_PATH@@/container/html:/usr/share/nginx/html:ro,Z
 Volume=@@SERVICE_PATH@@/container/conf:/etc/nginx/sites-available:ro,Z
 Volume=@@SERVICE_PATH@@/container/10-sites-symlink.sh:/docker-entrypoint.d/10-nginx-sites-symlink.sh:ro,Z
 Volume=@@SERVICE_PATH@@/container/reload.sh:/root/reload.sh:ro,Z
-Volume=@@INSTALL_ROOT@@/ssl_share/certificates:/var/ssl_share/certificates:ro,z
+Volume=@@INSTALL_ROOT@@/ssl_share/nginx_rp:/var/ssl_share/nginx_rp:ro,z
 Network=pasta:--map-host-loopback=@@MAP_LOCAL_ADDRESS@@
 StopSignal=SIGQUIT
 StopTimeout=30
