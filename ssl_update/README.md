@@ -19,12 +19,12 @@
 ## ディレクトリ・ボリューム構成
 - `container/scripts/`: コンテナ内 `/scripts` に read-only で bind mount
 - `/var/ssl_share`: `ssl_update:ssl_update` 755
-- `/var/ssl_share/production`: `ssl_update:ssl_update` 751
-- `/var/ssl_share/production/accounts`: `ssl_update:ssl_update` 751
-- `/var/ssl_share/production/certificates`: `ssl_update:ssl_update` 751
-- `/var/ssl_share/staging`: `ssl_update:ssl_update` 751
-- `/var/ssl_share/staging/accounts`: `ssl_update:ssl_update` 751
-- `/var/ssl_share/staging/certificates`: `ssl_update:ssl_update` 751
+- `/var/ssl_share/production`: `ssl_update:ssl_update` 750
+- `/var/ssl_share/production/accounts`: `ssl_update:ssl_update` 750
+- `/var/ssl_share/production/certificates`: `ssl_update:ssl_update` 750
+- `/var/ssl_share/staging`: `ssl_update:ssl_update` 750
+- `/var/ssl_share/staging/accounts`: `ssl_update:ssl_update` 750
+- `/var/ssl_share/staging/certificates`: `ssl_update:ssl_update` 750
 - `/var/ssl_share/nginx_rp`: `ssl_update:nginx_rp` 2750
 - `/var/ssl_share/mail_service`: `ssl_update:mail_service` 2750
 - 旧配置の `/var/ssl_share/accounts` と `/var/ssl_share/certificates` が存在する場合、`post-build-root` で `production/` 配下へ移行します。移行先が既に存在する場合は自動移行を停止します。
