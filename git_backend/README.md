@@ -11,7 +11,7 @@
 - `nginx_rp` は TLS 終端と reverse proxy のみを担当し、Basic 認証と FastCGI は `git_backend` 側で処理します。
 - bare リポジトリの永続領域として `NFS_ROOT/git_backend/repos` を使用します。
 - `pre-build-root` は `${INSTALL_ROOT}/git_triggers` をローカルディスク上に作成します。`SERVICES` に `redmine` を含める場合は共有向け権限に調整し、含めない場合は何もせずそのままにします。
-- HTTPS 証明書は `ssl_update` により `INSTALL_ROOT/ssl_share/certificates` に配置される前提です。
+- HTTPS 証明書は `ssl_update` により nginx_rp へ配布され、nginx_rp コンテナ内の `/run/nginx-certs` で参照される前提です。
 
 ## クイックスタート
 - サービスをデプロイする場合は `make deploy` または `make git_backend-deploy` を実行してください。

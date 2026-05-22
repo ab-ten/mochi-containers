@@ -11,7 +11,7 @@
 - NFS の永続ディレクトリを使用します。
 - `SERVICES` に `git_backend` を含める場合、`NFS_ROOT/git_backend` の read only mount を受け取り、`pre-build-root` で `NFS_ROOT/git_backend/repos` の読み取り可否を検証します。
 - NFS の権限設計は `docs/UsersSetup.md` の 2 段階ディレクトリ構成（上位 + `repos`）を前提とします。
-- HTTPS 証明書は `ssl_update` により `INSTALL_ROOT/ssl_share/certificates` に配置される前提です。
+- HTTPS 証明書は `ssl_update` により nginx_rp へ配布され、nginx_rp コンテナ内の `/run/nginx-certs` で参照される前提です。
 
 ## 主要パラメータ一覧
 - `SERVICE_PATH`: `/srv/project/redmine`

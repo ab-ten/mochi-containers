@@ -2,8 +2,8 @@
 Description=Reload nginx container when cert is updated
 
 [Path]
-# lego が touch するファイル（ホスト側パス）
-PathChanged=@@INSTALL_ROOT@@/ssl_share/certificates/.cert-updated
+# ssl_update が nginx_rp への配布完了時に touch するファイル（ホスト側パス）
+PathChanged=@@INSTALL_ROOT@@/ssl_share/nginx_rp/marker.updated
 Unit=cert-reload.service
 
 [Install]

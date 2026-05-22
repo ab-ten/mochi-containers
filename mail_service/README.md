@@ -123,7 +123,7 @@ example.org smtp:[smtp.provider.example]:587
 - Postfix は `virtual_transport = lmtp:unix:/run/mail-service/dovecot-lmtp` で Dovecot に配送します。
 - SMTP 認証は `smtpd_sasl_type = dovecot` と `smtpd_sasl_path = /run/mail-service/dovecot-auth` を使用します。
 - `transport` map により、特定の宛先またはドメインを外部 SMTP provider へ relay できます。
-- TLS 対応時は `ssl_update` の証明書を read only で mount し、Postfix/Dovecot の TLS 設定を追加します。
+- TLS 対応時は `ssl_update` が配布する `mail_service` 用の証明書アーカイブを read only で mount し、Postfix/Dovecot の TLS 設定を追加します。
 - deploy 時に `MAIL_SMTP_BACKEND_PORT` / `MAIL_POP3_BACKEND_PORT` を `mochi_mail_high_port_t` に割り当てます。この type は `local-mochi-mail-security-selinux` RPM が提供します。
 
 ## トラブルシュート / 注意点

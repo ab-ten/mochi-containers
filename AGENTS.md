@@ -7,6 +7,7 @@
 - コンテナ内で実行するスクリプトは `<service>/scripts/` に配置しない。コンテナ内で使用するスクリプトは `<service>/container/` 配下、または用途別のコンテナ資材ディレクトリに配置し、`<service>/scripts/` はホスト側で実行する運用スクリプトに限定する。
 - `nginx_rp/container/` 配下はコンテナビルド素材（`Containerfile`, `default.conf`, `html/index.html`）。`config/` や `systemd/` は将来の本番用設定・systemd 連携を置く想定だが、稼働させる user unit / quadlet は `<service>/home/.config/containers/systemd/` に必ず配置する（実際の稼働先は `/home/<service>/.config/containers/systemd/`）。
 - rootless 前提のため、systemd user unit と quadlet（`.service` / `.socket` / `.container` など）は `<service>/home/.config/containers/systemd/` に必ずまとめて配置し、デプロイ時に `/home/<service>/.config/containers/systemd/` へ同期する。user timer / service (`*.timer` など) は systemd 標準の `<service>/home/.config/systemd/user/` に置き、デプロイ時に `/home/<service>/.config/systemd/user/` へ同期する。
+- systemd path unit の `PathChanged=` / `PathModified=` で監視する marker は dotfile にしない。systemd は dotfile を監視対象から除外する場合があるため、`marker.updated` のような通常ファイル名を使用する。また、指定パスまでの中間ディレクトリには path unit を実行する user が読み取り・探索できる `rx` 権限が必要。
 - root での systemd unit が必要な場合は <service>/systemd/ に配置をする（特権ポートへの systemd socket activation を使用したい場合など）
 
 ## Build, Test, and Development Commands

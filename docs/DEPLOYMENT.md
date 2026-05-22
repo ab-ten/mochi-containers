@@ -137,7 +137,7 @@
    - `make <service>-deploy` のような単体デプロイでは、`SERVICES` 全体を前提とした関連サービスへの反映は行われない。例えば `make redmine-deploy` のみを実行しても `redmine/https_redmine.conf` は `nginx_rp/container/conf/` に集約されないため、nginx 側への反映が必要な場合は `nginx_rp` を含めて再デプロイする。
 8) **コンテナビルド**: `container/` と `container.*` ディレクトリを検出し、存在するディレクトリごとに `${INSTALL_ROOT}/scripts/container-build.sh` を実行する。`container-build.sh` は `custom-build.sh` があれば優先実行し、なければ共通処理として `podman build` を実行する。`custom-build.sh` が存在して実行不可な場合はエラー終了する。
 9) **post-build-user / post-build-root**: あれば pre-build と同様に実行。
-   - `ssl_update` の `post-build-root` は `${INSTALL_ROOT}/ssl_share` 配下の共有ディレクトリをローカルディスク上に作成し、証明書共有用の owner/group/mode を調整する。
+   - `ssl_update` の `post-build-root` は `${INSTALL_ROOT}/ssl_share` 配下の production/staging 用ディレクトリ、証明書配布先ディレクトリをローカルディスク上に作成し、owner/group/mode を調整する。旧配置の `accounts` / `certificates` が存在する場合は `production/` 配下へ移行する。
    - `post-build-root` は deploy 先の `${SERVICE_PATH}` を `cwd` にして実行するため、リポジトリルート側の相対パスを前提にした処理は置かない。
    - `git_backend` の `pre-build-root` は `${INSTALL_ROOT}/git_triggers` 配下のディレクトリをローカルディスク上に常に作成する。`SERVICES` に `redmine` を含める場合は共有向け group / mode に調整し、含めない場合は特に何もしない。
      - 一度でも redmine 込みで deploy した場合は `pending/` にタイムスタンプファイルが touch される。
@@ -145,6 +145,8 @@
 10) **systemd 配置**:
    - root unit: `INSTALL_ROOT/<service>/systemd/` のファイルを `/etc/systemd/system/<SERVICE_PREFIX>-<service>-<name>` にコピーし、`replace-deploy-vars.sh` でプレースホルダー置換する。旧 root unit が存在した場合、または新しい root unit を 1 件以上配置した場合に `systemctl daemon-reload` を実行する。
    - user unit / quadlet / timer: 旧 user unit が存在した場合、または新しい user unit が 1 件以上ある場合に、置換済みファイルを前提に `sudo systemctl -M "<user>@.host" --user daemon-reload` を実行する。
+   - `systemd.path` の `PathChanged=` / `PathModified=` で監視する marker は dotfile にしない。systemd は dotfile を監視対象から除外する場合がある。
+   - `PathChanged=` / `PathModified=` の指定パスまでの中間ディレクトリには、path unit を実行する user が読み取り・探索できる `rx` 権限が必要。複数 user で共有する marker を監視する場合は、親ディレクトリの mode も含めて確認する。
 11) **起動/再起動**:
     - user unit:
       - `.container` は start のみ（enable 不可）。
