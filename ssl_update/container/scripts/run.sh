@@ -5,7 +5,7 @@ set -eu
 SHARE_ROOT=/var/ssl_share
 HOOK_SCRIPT=/scripts/hook.sh
 LOCK_FILE=/var/ssl_share/.lego.lock
-CLIENTS="nginx_rp"
+CLIENTS="${CLIENTS-nginx_rp}"
 ROOT_ARCHIVE="${SHARE_ROOT}/certs.tar"
 NEW_ARCHIVE="${SHARE_ROOT}/certs-new.tar"
 SERVER_STAGING=https://acme-staging-v02.api.letsencrypt.org/directory
