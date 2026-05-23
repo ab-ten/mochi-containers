@@ -37,7 +37,8 @@
 - サービス固有の make 変数（例: `TRILIUM_PORT`, `DBFILE_DIR`, `UID_IN_PODMAN` など）は各サービスの `Makefile` で定義して `export` します。ルート `Makefile` では定義しません。
 - 各サービスの `Makefile` では、`SERVICE_NAME` / `SERVICE_USER` / `SERVICE_PATH` などの変数定義とサービス固有ターゲット定義を行った後、ファイル末尾で `include ../mk/services.mk` を記述してください。
 - `replace-files-user` など user 権限で実行する疑似ターゲットは、サービスユーザーで `make` を起動し直して実行します。そのため、サービスごとの `Makefile` と `Makefile.local` が user 側でも再評価され、サービス固有変数や `REPLACE_ADD_VAR` は root 側から明示的に環境変数として引き継がなくても反映されます。
-- root 実行時に `UID_IN_PODMAN` / `GID_IN_PODMAN` を定義した場合、`mk/services.mk` は `print_unshare_id.sh` で `UID_HOST_MAPPED` / `GID_HOST_MAPPED` を導出します。導出結果が空文字列になった場合は、`pre-build-root` などで不明瞭な失敗になる前に `make` を即時エラー終了します。
+- `SERVICE_GROUP` は `mk/services.mk` で共通定義されます。`Makefile.local` で未定義の場合は `SERVICE_USER` の primary group を `id -gn` で取得し、取得できない場合は `SERVICE_USER` と同名の group を既定値として扱います。例外的に別 group を使用するサービスのみ、対象サービスの `Makefile.local` で `SERVICE_GROUP` を上書きしてください。
+- root 実行時に `UID_IN_PODMAN` / `GID_IN_PODMAN` を定義した場合、`mk/services.mk` は `print_unshare_id.sh` で `UID_HOST_MAPPED` / `GID_HOST_MAPPED` を導出します。導出結果が空文字列になった場合は、`pre-build-root` などで不明瞭な失敗になる前に `make` を即時エラー終了します。ただし、`get-service-user` / `get-service-group` のように `mk/services.mk` 内で完結する小さい問い合わせターゲットでは、Podman id map の導出を行いません。
 - 共通の環境変数名リストは `scripts/deploy-vars.subr` で一元管理します。
 - `scripts/deploy-vars.subr` の仕様詳細は `docs/deploy-vars.subr.md` を参照します。
 
@@ -137,7 +138,7 @@
    - `make <service>-deploy` のような単体デプロイでは、`SERVICES` 全体を前提とした関連サービスへの反映は行われない。例えば `make redmine-deploy` のみを実行しても `redmine/https_redmine.conf` は `nginx_rp/container/conf/` に集約されないため、nginx 側への反映が必要な場合は `nginx_rp` を含めて再デプロイする。
 8) **コンテナビルド**: `container/` と `container.*` ディレクトリを検出し、存在するディレクトリごとに `${INSTALL_ROOT}/scripts/container-build.sh` を実行する。`container-build.sh` は `custom-build.sh` があれば優先実行し、なければ共通処理として `podman build` を実行する。`custom-build.sh` が存在して実行不可な場合はエラー終了する。
 9) **post-build-user / post-build-root**: あれば pre-build と同様に実行。
-   - `ssl_update` の `post-build-root` は `${INSTALL_ROOT}/ssl_share` 配下の production/staging 用ディレクトリ、証明書配布先ディレクトリをローカルディスク上に作成し、owner/group/mode を調整する。旧配置の `accounts` / `certificates` が存在する場合は `production/` 配下へ移行する。
+   - `ssl_update` の `post-build-root` は `${INSTALL_ROOT}/ssl_share` 配下の production/staging 用ディレクトリ、証明書配布先ディレクトリをローカルディスク上に作成し、owner/group/mode を調整する。証明書配布先は `SSL_UPDATE_CLIENTS` のうち `SERVICES` に含まれるサービスのみを対象とし、group は対象サービスの `get-service-group` で取得した `SERVICE_GROUP` を使用する。コンテナ内の配布処理にも、同じ有効配布先一覧を `CLIENTS` として渡す。旧配置の `accounts` / `certificates` が存在する場合は `production/` 配下へ移行する。
    - `post-build-root` は deploy 先の `${SERVICE_PATH}` を `cwd` にして実行するため、リポジトリルート側の相対パスを前提にした処理は置かない。
    - `git_backend` の `pre-build-root` は `${INSTALL_ROOT}/git_triggers` 配下のディレクトリをローカルディスク上に常に作成する。`SERVICES` に `redmine` を含める場合は共有向け group / mode に調整し、含めない場合は特に何もしない。
      - 一度でも redmine 込みで deploy した場合は `pending/` にタイムスタンプファイルが touch される。

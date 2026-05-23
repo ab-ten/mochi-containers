@@ -12,6 +12,7 @@ Volume=@@INSTALL_ROOT@@/ssl_share:/var/ssl_share:z
 EnvironmentFile=@@SERVICE_PATH@@/ssl_update.env-user
 @@SLACK_NOTIFICATION_ENV@@
 Environment=USE_STAGING=@@USE_STAGING@@
+Environment="CLIENTS=@@SSL_UPDATE_ACTIVE_CLIENTS@@"
 Exec=/scripts/run.sh
 DNS=8.8.8.8
 

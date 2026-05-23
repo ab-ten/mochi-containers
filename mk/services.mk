@@ -8,6 +8,7 @@ EARLY_STOP ?= No
 SLACK_NOTIFICATION ?= No
 SLACK_NOTIFICATION_ENV := \# NO_SLACK_NOTIFICATION
 REPLACE_ADD_VAR += SLACK_NOTIFICATION_ENV
+SERVICE_GROUP ?= $(shell id -gn "$(SERVICE_USER)" 2>/dev/null || printf '%s\n' "$(SERVICE_USER)")
 
 ifeq ($(SLACK_NOTIFICATION),Yes)
 ifneq ($(wildcard $(SECRETS_DIR)/slack.env-user),)
@@ -15,7 +16,11 @@ SLACK_NOTIFICATION_ENV := EnvironmentFile=${SERVICE_PATH}/slack.env-user
 endif
 endif
 
+NO_PODMAN_ID_MAP_TARGETS := get-service-user get-service-group
+PODMAN_ID_MAP_GOALS := $(if $(MAKECMDGOALS),$(filter-out $(NO_PODMAN_ID_MAP_TARGETS),$(MAKECMDGOALS)),__default__)
+
 ifeq ($(shell id -u),0)
+ifneq ($(strip $(PODMAN_ID_MAP_GOALS)),)
 ifneq ($(strip $(UID_IN_PODMAN)),)
 UID_HOST_MAPPED = $(shell ../scripts/print_unshare_id.sh --type uid --user "${SERVICE_USER}" --id "${UID_IN_PODMAN}")
 ifeq ($(strip $(UID_HOST_MAPPED)),)
@@ -26,6 +31,7 @@ ifneq ($(strip $(GID_IN_PODMAN)),)
 GID_HOST_MAPPED = $(shell ../scripts/print_unshare_id.sh --type gid --user "${SERVICE_USER}" --id "${GID_IN_PODMAN}")
 ifeq ($(strip $(GID_HOST_MAPPED)),)
 $(error GID_HOST_MAPPED is empty. print_unshare_id.sh failed? SERVICE_USER="$(SERVICE_USER)" GID_IN_PODMAN="$(GID_IN_PODMAN)")
+endif
 endif
 endif
 endif
@@ -57,6 +63,9 @@ endif
 
 get-service-user:
 	@echo "${SERVICE_USER}"
+
+get-service-group:
+	@printf '%s\n' "$(SERVICE_GROUP)"
 
 deploy:
 	@echo

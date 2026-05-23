@@ -23,7 +23,8 @@
 - 各サービスの `Makefile` では、サービス固有の変数・ターゲットを定義した後、ファイル末尾で `include ../mk/services.mk` を記述してください。
 - `replace-files-user` など user 権限で実行する疑似ターゲットは、`run_user_make` がサービスユーザーで `make` を起動し直して実行します。このとき対象サービスの `Makefile` と `Makefile.local` が再評価されるため、サービス固有変数や `REPLACE_ADD_VAR` は user 側にも反映されます。
 - この設計により、サービス固有変数を `scripts/deploy-vars.subr` の必須変数へ追加して root から user へ明示的に伝播する必要はありません。`deploy-vars.subr` に追加するのは、共通 deploy 処理自体が常に必要とする変数に限定します。
-- root 実行時に `UID_IN_PODMAN` / `GID_IN_PODMAN` を定義するサービスでは、`mk/services.mk` が `print_unshare_id.sh` で導出した `UID_HOST_MAPPED` / `GID_HOST_MAPPED` が空文字列の場合に即時エラー終了します。
+- `SERVICE_GROUP` は `mk/services.mk` で共通定義されます。`Makefile.local` で未定義の場合は `SERVICE_USER` の primary group を `id -gn` で取得し、取得できない場合は `SERVICE_USER` と同名の group を既定値として扱います。例外的に別 group を使用するサービスのみ、対象サービスの `Makefile.local` で `SERVICE_GROUP` を上書きしてください。
+- root 実行時に `UID_IN_PODMAN` / `GID_IN_PODMAN` を定義するサービスでは、`mk/services.mk` が `print_unshare_id.sh` で導出した `UID_HOST_MAPPED` / `GID_HOST_MAPPED` が空文字列の場合に即時エラー終了します。ただし、`get-service-user` / `get-service-group` のように `mk/services.mk` 内で完結する小さい問い合わせターゲットでは、Podman id map の導出を行いません。
 
 ## 必須環境変数
 - 変数名リストは `scripts/deploy-vars.subr` の `DEPLOY_REQUIRED_VARS` で一元管理する。
@@ -112,6 +113,7 @@
 12. post-build フック:
    - `post-build-user` / `post-build-root` があれば pre-build 同様に実行。`post-build-user` は `sudo -u ${SERVICE_USER} INSTALL_ROOT=... NFS_ROOT=... SERVICE_PATH=... make -C ${SERVICE_PATH} post-build-user` で呼ばれる。
    - `post-build-root` は `make -C "${SERVICE_PATH}" post-build-root` で実行するため、`cwd` は deploy 先の `${SERVICE_PATH}` になる。リポジトリルートの `../Makefile` や相対パス前提の参照は使用しない。
+   - `ssl_update` の `post-build-root` は、`SSL_UPDATE_CLIENTS` のうち `SERVICES` に含まれるサービスのみを証明書配布先として扱います。配布先ディレクトリは `${INSTALL_ROOT}/ssl_share/<service>` に作成し、group は root `Makefile` の `<service>-get-service-group` 経由で対象サービスの `SERVICE_GROUP` を取得します。コンテナ内の配布処理にも、同じ有効配布先一覧を `CLIENTS` として渡します。
    - `post-build-root` 実行後、`SERVICES` を巡回して各サービスの `post-build-root-hook-<デプロイ対象サービス名>` を root で実行する。
    - `mk/services.mk` には no-op の `post-build-root-hook-%` が定義されているため、フック未定義サービスがあってもエラーにはならない。
    - post-build 側も pre-build 側と同様に、`SERVICE_*` 系は hook 定義側サービスの値になります。デプロイ対象サービスを参照する場合は `HOOK_TARGET_SERVICE_*` を使用してください。
