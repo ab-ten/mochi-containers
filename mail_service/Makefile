@@ -42,7 +42,9 @@ REPLACE_FILES_USER = \
 	${SERVICE_PATH}/generated/postfix/virtual_alias \
 	${SERVICE_PATH}/generated/postfix/transport \
 	${SERVICE_PATH}/generated/postfix/relay_sasl_passwd \
-	${SERVICE_PATH}/generated/dovecot/dovecot.conf
+	${SERVICE_PATH}/generated/dovecot/dovecot.conf \
+	${SERVICE_PATH}/container.dovecot/certs-extract.sh \
+	${SERVICE_PATH}/container.dovecot/reload.sh \
 
 -include Makefile.local
 
