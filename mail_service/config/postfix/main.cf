@@ -13,8 +13,11 @@ local_transport = error:local delivery is disabled
 relay_domains =
 
 smtpd_banner = $myhostname ESMTP
-smtpd_relay_restrictions = permit_mynetworks, reject_unauth_destination
-smtpd_recipient_restrictions = permit_mynetworks, reject_unauth_destination
+smtpd_tls_security_level = may
+smtpd_tls_cert_file = /run/mail-service-certs/fullchain.crt
+smtpd_tls_key_file = /run/mail-service-certs/privkey.key
+smtpd_tls_loglevel = 1
+smtpd_relay_restrictions = permit_auth_destination, check_recipient_access hash:/etc/postfix/relay_allowed_recipients, reject_unauth_destination
 
 smtpd_sasl_auth_enable = yes
 smtpd_sasl_type = dovecot
@@ -28,6 +31,7 @@ virtual_alias_maps = hash:/etc/postfix/virtual_alias
 virtual_transport = lmtp:unix:/run/mail-service/dovecot-lmtp
 
 transport_maps = hash:/etc/postfix/transport
+smtp_generic_maps = hash:/etc/postfix/generic
 smtp_sasl_auth_enable = yes
 smtp_sasl_password_maps = hash:/etc/postfix/relay_sasl_passwd
 smtp_sasl_security_options = noanonymous

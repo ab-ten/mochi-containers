@@ -40,11 +40,15 @@ REPLACE_FILES_USER = \
 	${SERVICE_PATH}/generated/postfix/master.cf \
 	${SERVICE_PATH}/generated/postfix/virtual_mailbox \
 	${SERVICE_PATH}/generated/postfix/virtual_alias \
+	${SERVICE_PATH}/generated/postfix/relay_allowed_recipients \
 	${SERVICE_PATH}/generated/postfix/transport \
+	${SERVICE_PATH}/generated/postfix/generic \
 	${SERVICE_PATH}/generated/postfix/relay_sasl_passwd \
 	${SERVICE_PATH}/generated/dovecot/dovecot.conf \
 	${SERVICE_PATH}/container.dovecot/certs-extract.sh \
 	${SERVICE_PATH}/container.dovecot/reload.sh \
+	${SERVICE_PATH}/container.postfix/certs-extract.sh \
+	${SERVICE_PATH}/container.postfix/reload.sh
 
 -include Makefile.local
 
@@ -80,6 +84,14 @@ pre-build-root:
 	  install -o "${SERVICE_USER}" -g "${SERVICE_USER}" -m 0640 \
 	    /dev/null "${SERVICE_PATH}/generated/postfix/virtual_alias"; \
 	fi
+	@if [ -f "${SECRETS_DIR}/mail_service/relay_allowed_recipients" ]; then \
+	  install -o "${SERVICE_USER}" -g "${SERVICE_USER}" -m 0640 \
+	    "${SECRETS_DIR}/mail_service/relay_allowed_recipients" \
+	    "${SERVICE_PATH}/generated/postfix/relay_allowed_recipients"; \
+	else \
+	  install -o "${SERVICE_USER}" -g "${SERVICE_USER}" -m 0640 \
+	    /dev/null "${SERVICE_PATH}/generated/postfix/relay_allowed_recipients"; \
+	fi
 	@if [ -f "${SECRETS_DIR}/mail_service/transport" ]; then \
 	  install -o "${SERVICE_USER}" -g "${SERVICE_USER}" -m 0640 \
 	    "${SECRETS_DIR}/mail_service/transport" \
@@ -87,6 +99,14 @@ pre-build-root:
 	else \
 	  install -o "${SERVICE_USER}" -g "${SERVICE_USER}" -m 0640 \
 	    /dev/null "${SERVICE_PATH}/generated/postfix/transport"; \
+	fi
+	@if [ -f "${SECRETS_DIR}/mail_service/generic" ]; then \
+	  install -o "${SERVICE_USER}" -g "${SERVICE_USER}" -m 0640 \
+	    "${SECRETS_DIR}/mail_service/generic" \
+	    "${SERVICE_PATH}/generated/postfix/generic"; \
+	else \
+	  install -o "${SERVICE_USER}" -g "${SERVICE_USER}" -m 0640 \
+	    /dev/null "${SERVICE_PATH}/generated/postfix/generic"; \
 	fi
 	@if [ -f "${SECRETS_DIR}/mail_service/relay_sasl_passwd" ]; then \
 	  install -o "${SERVICE_USER}" -g "${SERVICE_USER}" -m 0600 \
@@ -111,7 +131,15 @@ post-build-user:
 	podman run --rm --entrypoint postmap \
 	  -v "${SERVICE_PATH}/generated/postfix:/work:Z" \
 	  localhost/${SERVICE_NAME}-postfix:dev \
+	  /work/relay_allowed_recipients
+	podman run --rm --entrypoint postmap \
+	  -v "${SERVICE_PATH}/generated/postfix:/work:Z" \
+	  localhost/${SERVICE_NAME}-postfix:dev \
 	  /work/transport
+	podman run --rm --entrypoint postmap \
+	  -v "${SERVICE_PATH}/generated/postfix:/work:Z" \
+	  localhost/${SERVICE_NAME}-postfix:dev \
+	  /work/generic
 	podman run --rm --entrypoint postmap \
 	  -v "${SERVICE_PATH}/generated/postfix:/work:Z" \
 	  localhost/${SERVICE_NAME}-postfix:dev \
