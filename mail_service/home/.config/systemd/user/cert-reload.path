@@ -1,0 +1,9 @@
+[Unit]
+Description=Reload mail_service containers when cert is updated
+
+[Path]
+PathChanged=@@MAIL_CERT_SHARE_DIR@@/marker.updated
+Unit=cert-reload.service
+
+[Install]
+WantedBy=default.target

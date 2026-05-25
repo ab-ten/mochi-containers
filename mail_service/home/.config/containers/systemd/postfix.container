@@ -8,19 +8,25 @@ Requires=dovecot.service
 Image=localhost/mail_service-postfix:dev
 Pull=never
 ContainerName=postfix
-PublishPort=127.0.0.1:@@MAIL_SMTP_BACKEND_PORT@@:25
+PublishPort=@@MAIL_SMTP_BACKEND_ADDRESS@@:@@MAIL_SMTP_BACKEND_PORT@@:25
 Volume=@@MAIL_SOCKET_VOLUME@@:/run/mail-service
 Volume=@@MAIL_QUEUEDIR@@:/var/spool/postfix:Z
+Volume=@@MAIL_CERT_SHARE_DIR@@:/var/ssl_share/mail_service:ro,z
 Volume=@@SERVICE_PATH@@/generated/postfix/main.cf:/etc/postfix/main.cf:ro,Z
 Volume=@@SERVICE_PATH@@/generated/postfix/master.cf:/etc/postfix/master.cf:ro,Z
 Volume=@@SERVICE_PATH@@/generated/postfix/virtual_mailbox:/etc/postfix/virtual_mailbox:ro,Z
 Volume=@@SERVICE_PATH@@/generated/postfix/virtual_mailbox.db:/etc/postfix/virtual_mailbox.db:ro,Z
 Volume=@@SERVICE_PATH@@/generated/postfix/virtual_alias:/etc/postfix/virtual_alias:ro,Z
 Volume=@@SERVICE_PATH@@/generated/postfix/virtual_alias.db:/etc/postfix/virtual_alias.db:ro,Z
+Volume=@@SERVICE_PATH@@/generated/postfix/relay_allowed_recipients:/etc/postfix/relay_allowed_recipients:ro,Z
+Volume=@@SERVICE_PATH@@/generated/postfix/relay_allowed_recipients.db:/etc/postfix/relay_allowed_recipients.db:ro,Z
 Volume=@@SERVICE_PATH@@/generated/postfix/transport:/etc/postfix/transport:ro,Z
 Volume=@@SERVICE_PATH@@/generated/postfix/transport.db:/etc/postfix/transport.db:ro,Z
+Volume=@@SERVICE_PATH@@/generated/postfix/generic:/etc/postfix/generic:ro,Z
+Volume=@@SERVICE_PATH@@/generated/postfix/generic.db:/etc/postfix/generic.db:ro,Z
 Volume=@@SERVICE_PATH@@/generated/postfix/relay_sasl_passwd:/etc/postfix/relay_sasl_passwd:ro,Z
 Volume=@@SERVICE_PATH@@/generated/postfix/relay_sasl_passwd.db:/etc/postfix/relay_sasl_passwd.db:ro,Z
+Environment=MAIL_CERT_DOMAIN=@@MAIL_CERT_DOMAIN@@
 
 [Service]
 Restart=on-failure

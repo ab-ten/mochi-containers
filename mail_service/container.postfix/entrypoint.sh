@@ -10,6 +10,7 @@ fi
 chown postfix /var/lib/postfix/
 chgrp postdrop /usr/sbin/postqueue /usr/sbin/postdrop
 
+/usr/local/sbin/mail-postfix-certs-extract
 postfix check
 
 exec "$@"

@@ -8,35 +8,47 @@ GID_IN_PODMAN = 102
 MAIL_DOMAIN ?= ${CERT_DOMAIN}
 MAIL_HOSTNAME ?= mail.${MAIL_DOMAIN}
 MAIL_MYNETWORKS ?= 127.0.0.0/8, 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16
+MAIL_SMTP_BACKEND_ADDRESS ?= 127.0.0.1
+MAIL_POP3_LISTEN_ADDRESS ?= 0.0.0.0
 MAIL_SMTP_BACKEND_PORT ?= 2525
 MAIL_POP3_BACKEND_PORT ?= 8110
 MAIL_SMTP_PUBLIC_PORT ?= 25
-MAIL_POP3_PUBLIC_PORT ?= 110
 MAIL_STATE_DIR ?= ${INSTALL_ROOT}/mail_service_state
 MAIL_MAILDIR ?= ${MAIL_STATE_DIR}/maildir
 MAIL_QUEUEDIR ?= ${MAIL_STATE_DIR}/postfix-queue
 MAIL_SOCKET_VOLUME ?= mail_service_sockets
+MAIL_CERT_SHARE_DIR ?= ${INSTALL_ROOT}/ssl_share/mail_service
+MAIL_CERT_DOMAIN ?= ${CERT_DOMAIN}
 
 REPLACE_ADD_VAR = \
 	MAIL_DOMAIN \
 	MAIL_HOSTNAME \
 	MAIL_MYNETWORKS \
+	MAIL_SMTP_BACKEND_ADDRESS \
+	MAIL_POP3_LISTEN_ADDRESS \
 	MAIL_SMTP_BACKEND_PORT \
 	MAIL_POP3_BACKEND_PORT \
 	MAIL_SMTP_PUBLIC_PORT \
-	MAIL_POP3_PUBLIC_PORT \
 	MAIL_MAILDIR \
 	MAIL_QUEUEDIR \
-	MAIL_SOCKET_VOLUME
+	MAIL_SOCKET_VOLUME \
+	MAIL_CERT_SHARE_DIR \
+	MAIL_CERT_DOMAIN
 
 REPLACE_FILES_USER = \
 	${SERVICE_PATH}/generated/postfix/main.cf \
 	${SERVICE_PATH}/generated/postfix/master.cf \
 	${SERVICE_PATH}/generated/postfix/virtual_mailbox \
 	${SERVICE_PATH}/generated/postfix/virtual_alias \
+	${SERVICE_PATH}/generated/postfix/relay_allowed_recipients \
 	${SERVICE_PATH}/generated/postfix/transport \
+	${SERVICE_PATH}/generated/postfix/generic \
 	${SERVICE_PATH}/generated/postfix/relay_sasl_passwd \
-	${SERVICE_PATH}/generated/dovecot/dovecot.conf
+	${SERVICE_PATH}/generated/dovecot/dovecot.conf \
+	${SERVICE_PATH}/container.dovecot/certs-extract.sh \
+	${SERVICE_PATH}/container.dovecot/reload.sh \
+	${SERVICE_PATH}/container.postfix/certs-extract.sh \
+	${SERVICE_PATH}/container.postfix/reload.sh
 
 -include Makefile.local
 
@@ -72,6 +84,14 @@ pre-build-root:
 	  install -o "${SERVICE_USER}" -g "${SERVICE_USER}" -m 0640 \
 	    /dev/null "${SERVICE_PATH}/generated/postfix/virtual_alias"; \
 	fi
+	@if [ -f "${SECRETS_DIR}/mail_service/relay_allowed_recipients" ]; then \
+	  install -o "${SERVICE_USER}" -g "${SERVICE_USER}" -m 0640 \
+	    "${SECRETS_DIR}/mail_service/relay_allowed_recipients" \
+	    "${SERVICE_PATH}/generated/postfix/relay_allowed_recipients"; \
+	else \
+	  install -o "${SERVICE_USER}" -g "${SERVICE_USER}" -m 0640 \
+	    /dev/null "${SERVICE_PATH}/generated/postfix/relay_allowed_recipients"; \
+	fi
 	@if [ -f "${SECRETS_DIR}/mail_service/transport" ]; then \
 	  install -o "${SERVICE_USER}" -g "${SERVICE_USER}" -m 0640 \
 	    "${SECRETS_DIR}/mail_service/transport" \
@@ -79,6 +99,14 @@ pre-build-root:
 	else \
 	  install -o "${SERVICE_USER}" -g "${SERVICE_USER}" -m 0640 \
 	    /dev/null "${SERVICE_PATH}/generated/postfix/transport"; \
+	fi
+	@if [ -f "${SECRETS_DIR}/mail_service/generic" ]; then \
+	  install -o "${SERVICE_USER}" -g "${SERVICE_USER}" -m 0640 \
+	    "${SECRETS_DIR}/mail_service/generic" \
+	    "${SERVICE_PATH}/generated/postfix/generic"; \
+	else \
+	  install -o "${SERVICE_USER}" -g "${SERVICE_USER}" -m 0640 \
+	    /dev/null "${SERVICE_PATH}/generated/postfix/generic"; \
 	fi
 	@if [ -f "${SECRETS_DIR}/mail_service/relay_sasl_passwd" ]; then \
 	  install -o "${SERVICE_USER}" -g "${SERVICE_USER}" -m 0600 \
@@ -103,7 +131,15 @@ post-build-user:
 	podman run --rm --entrypoint postmap \
 	  -v "${SERVICE_PATH}/generated/postfix:/work:Z" \
 	  localhost/${SERVICE_NAME}-postfix:dev \
+	  /work/relay_allowed_recipients
+	podman run --rm --entrypoint postmap \
+	  -v "${SERVICE_PATH}/generated/postfix:/work:Z" \
+	  localhost/${SERVICE_NAME}-postfix:dev \
 	  /work/transport
+	podman run --rm --entrypoint postmap \
+	  -v "${SERVICE_PATH}/generated/postfix:/work:Z" \
+	  localhost/${SERVICE_NAME}-postfix:dev \
+	  /work/generic
 	podman run --rm --entrypoint postmap \
 	  -v "${SERVICE_PATH}/generated/postfix:/work:Z" \
 	  localhost/${SERVICE_NAME}-postfix:dev \

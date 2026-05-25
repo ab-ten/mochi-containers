@@ -18,7 +18,12 @@ RUN set -eux; \
     rm -rf /var/lib/apt/lists/*
 
 COPY entrypoint.sh /usr/local/sbin/mail-dovecot-entrypoint
-RUN chmod 0755 /usr/local/sbin/mail-dovecot-entrypoint
+COPY certs-extract.sh /usr/local/sbin/mail-dovecot-certs-extract
+COPY reload.sh /usr/local/sbin/mail-dovecot-reload
+RUN chmod 0755 \
+      /usr/local/sbin/mail-dovecot-entrypoint \
+      /usr/local/sbin/mail-dovecot-certs-extract \
+      /usr/local/sbin/mail-dovecot-reload
 
 EXPOSE 110
 
