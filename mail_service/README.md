@@ -64,11 +64,11 @@ alice@example.com example.com/alice/Maildir/
 @example.com alice@example.com
 ```
 
-`SECRETS_DIR/mail_service/relay_allowed_recipients` は任意です。外部宛てに送信できる宛先を Postfix access map 形式で記述します。このファイルが空または未配置の場合、`MAIL_DOMAIN` 以外への送信は拒否されます。
+`SECRETS_DIR/mail_service/relay_allowed_recipients` は任意です。外部宛てに送信できる宛先を Postfix access map 形式で記述します。個別の宛先は `external@example.net` のように、ドメイン単位で許可する場合は `example.org` または `.example.org` のように記述してください（`@example.org` は想定どおりにマッチしません）。このファイルが空または未配置の場合、`MAIL_DOMAIN` 以外への送信は拒否されます。
 
 ```text
 external@example.net OK
-@example.org OK
+example.org OK
 ```
 
 `SECRETS_DIR/mail_service/transport` は任意です。宛先別に外部 SMTP relay へ送る場合は以下のように記述します。
