@@ -7,11 +7,13 @@ Wants=network-online.target
 Image=localhost/mail_service-dovecot:dev
 Pull=never
 ContainerName=dovecot
-PublishPort=127.0.0.1:@@MAIL_POP3_BACKEND_PORT@@:110
+PublishPort=@@MAIL_POP3_LISTEN_ADDRESS@@:@@MAIL_POP3_BACKEND_PORT@@:110
 Volume=@@MAIL_SOCKET_VOLUME@@:/run/mail-service
 Volume=@@MAIL_MAILDIR@@:/var/mail/vhosts:Z
+Volume=@@MAIL_CERT_SHARE_DIR@@:/var/ssl_share/mail_service:ro,z
 Volume=@@SERVICE_PATH@@/generated/dovecot/dovecot.conf:/etc/dovecot/dovecot.conf:ro,Z
 Volume=@@SERVICE_PATH@@/generated/dovecot/users.passwd:/etc/dovecot/users.passwd:ro,Z
+Environment=MAIL_CERT_DOMAIN=@@MAIL_CERT_DOMAIN@@
 
 [Service]
 Restart=on-failure

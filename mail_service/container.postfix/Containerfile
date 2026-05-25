@@ -17,7 +17,12 @@ RUN set -eux; \
     rm -rf /var/lib/apt/lists/*
 
 COPY entrypoint.sh /usr/local/sbin/mail-postfix-entrypoint
-RUN chmod 0755 /usr/local/sbin/mail-postfix-entrypoint
+COPY certs-extract.sh /usr/local/sbin/mail-postfix-certs-extract
+COPY reload.sh /usr/local/sbin/mail-postfix-reload
+RUN chmod 0755 \
+      /usr/local/sbin/mail-postfix-entrypoint \
+      /usr/local/sbin/mail-postfix-certs-extract \
+      /usr/local/sbin/mail-postfix-reload
 
 EXPOSE 25
 

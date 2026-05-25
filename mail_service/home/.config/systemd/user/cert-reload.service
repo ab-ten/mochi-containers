@@ -1,0 +1,9 @@
+[Unit]
+Description=Reload Dovecot and Postfix certificates
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/podman exec dovecot /usr/local/sbin/mail-dovecot-reload
+ExecStart=/usr/bin/podman exec postfix /usr/local/sbin/mail-postfix-reload
+
+#NOSTART
