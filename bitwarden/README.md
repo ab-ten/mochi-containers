@@ -27,7 +27,6 @@
 
 ## ディレクトリ・ボリューム構成
 - `container/Containerfile`: Bitwarden Lite 派生イメージのビルド定義
-- `bitwarden-entrypoint.sample.sh`: upstream entrypoint の参考サンプル
 - `https_bitwarden.conf`: nginx vhost 設定（`replace-files-user` で置換）
 - `BITWARDEN_DATA_DIR`: `/etc/bitwarden` に bind mount
 - `home/.config/containers/systemd/bitwarden.container`: rootless quadlet 定義
