@@ -1,7 +1,7 @@
 # project-root/Makefile
 
 export
-SERVICES = ssl_update nextcloud git_backend redmine trilium mail_service nginx_rp security_package host_services
+SERVICES = ssl_update nextcloud git_backend redmine trilium mail_service bitwarden nginx_rp security_package host_services
 INSTALL_ROOT = /srv/project
 NFS_ROOT = /srv/nfs/containers
 SERVICE_PREFIX = mochi
