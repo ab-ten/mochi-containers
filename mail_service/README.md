@@ -58,6 +58,8 @@ alice@example.com example.com/alice/Maildir/
 
 このサービスでは Postfix が Dovecot LMTP へ配送するため、右辺のディレクトリ指定は実際の保存先としては使用されません。実際の保存先は Dovecot の `mail_location` に従い、`/var/mail/vhosts/<domain>/<local-part>/Maildir` になります。右辺には Postfix map として有効な任意の非空値を指定してください。
 
+Postfix では `recipient_delimiter = +` を設定しています。`alice+tag@example.com` のような plus addressing を使用する場合、`virtual_mailbox` には基底アドレスの `alice@example.com` を登録してください。
+
 `SECRETS_DIR/mail_service/virtual_alias` は任意です。catch-all を使う場合は以下のように記述します。
 
 ```text
@@ -143,6 +145,7 @@ alice@example.com provider-user@provider.example
 
 ## 連携メモ
 - Postfix は `virtual_transport = lmtp:unix:/run/mail-service/dovecot-lmtp` で Dovecot に配送します。
+- Postfix は `recipient_delimiter = +` により、宛先ローカルパートの `+` 以降を address extension として扱います。
 - SMTP 認証は `smtpd_sasl_type = dovecot` と `smtpd_sasl_path = /run/mail-service/dovecot-auth` を使用します。
 - `relay_allowed_recipients` により、外部宛て送信を許可する宛先を制限します。既定では外部宛て送信を許可しません。
 - `transport` map により、許可済みの特定宛先またはドメインを外部 SMTP provider へ relay できます。
