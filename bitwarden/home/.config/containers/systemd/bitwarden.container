@@ -7,7 +7,7 @@ Wants=network-online.target
 Image=localhost/bitwarden:dev
 Pull=never
 ContainerName=bitwarden
-PublishPort=127.0.0.1:@@BITWARDEN_PORT@@:8080
+PublishPort=127.0.0.1:@@BITWARDEN_PORT@@:@@BW_PORT_HTTP@@
 Volume=@@BITWARDEN_DATA_DIR@@:/etc/bitwarden:Z
 Environment=BW_DOMAIN=@@BW_DOMAIN@@
 Environment=BW_ENABLE_SSL=@@BW_ENABLE_SSL@@
