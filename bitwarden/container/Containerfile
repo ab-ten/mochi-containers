@@ -1,0 +1,15 @@
+FROM ghcr.io/bitwarden/lite:2026.4.1
+
+# rootless Podman + NFS bind mount では、container root namespace からの
+# chown が成功しない場合があります。/etc/bitwarden の所有権は host/NFS 側の
+# pre-build-root で管理し、それ以外の container 内部パスは upstream の chown を維持します。
+RUN set -eu; \
+  cp -a /entrypoint.sh /entrypoint.sh.orig; \
+  grep -F '    /etc/bitwarden \' /entrypoint.sh; \
+  sed -i '/^    \/etc\/bitwarden \\$/d' /entrypoint.sh; \
+  ! grep -F '    /etc/bitwarden \' /entrypoint.sh; \
+  grep -F '    /app \' /entrypoint.sh; \
+  grep -F '    /etc/nginx/http.d \' /entrypoint.sh; \
+  grep -F '    /etc/supervisor \' /entrypoint.sh; \
+  grep -F '    /var/log \' /entrypoint.sh; \
+  grep -F '    /run' /entrypoint.sh
