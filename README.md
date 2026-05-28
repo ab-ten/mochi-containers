@@ -73,6 +73,7 @@ OpenSUSE MicroOS 上で **rootless Podman + systemd user unit** を使用し、*
   - `trilium/README.md`
   - `nextcloud/README.md`
   - `redmine/README.md`
+  - `bitwarden/README.md`
   - `git_backend/README.md`
   - `mail_service/README.md`
   - `security_package/README.md`

@@ -33,6 +33,9 @@ useradd -u 20017 -g 20017 host_services
 
 groupadd mail_service -g 20018
 useradd -u 20018 -g 20018 mail_service
+
+groupadd bitwarden -g 20019
+useradd -u 20019 -g 20019 bitwarden
 ```
 
 nextcloud/www-data ユーザーID、redmine/redmine グループID、trilium/trilium ユーザーID取得（NFS使用時に必要です）
@@ -95,6 +98,9 @@ pw useradd trilium -u 20015 -g trilium -m -s /usr/sbin/nologin
 
 pw groupadd git_backend -g 20016
 pw useradd git_backend -u 20016 -g git_backend -m -s /usr/sbin/nologin
+
+pw groupadd bitwarden -g 20019
+pw useradd bitwarden -u 20019 -g bitwarden -m -s /usr/sbin/nologin
 ```
 
 ### freebsd NFSv4 server NFS 設定
@@ -115,6 +121,7 @@ install -d -g 497606 -o redmine -m 2770 /ztank/nfsv4root/containers/redmine
 install -d -o trilium -g 563143 -m 2770 /ztank/nfsv4root/containers/trilium
 install -d -o git_backend -g redmine -m 0751 /ztank/nfsv4root/containers/git_backend
 install -d -o git_backend -g 497606 -m 2750 /ztank/nfsv4root/containers/git_backend/repos
+install -d -o bitwarden -g 825287 -m 2770 /ztank/nfsv4root/containers/bitwarden
 ```
 
 ### nextcloud migration 用に必要なこと
