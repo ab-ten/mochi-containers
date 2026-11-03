@@ -121,7 +121,7 @@ install -d -g 497606 -o redmine -m 2770 /ztank/nfsv4root/containers/redmine
 install -d -o trilium -g 563143 -m 2770 /ztank/nfsv4root/containers/trilium
 install -d -o git_backend -g redmine -m 0751 /ztank/nfsv4root/containers/git_backend
 install -d -o git_backend -g 497606 -m 2750 /ztank/nfsv4root/containers/git_backend/repos
-install -d -o bitwarden -g 825287 -m 2770 /ztank/nfsv4root/containers/bitwarden
+install -d -o bitwarden -g 825198 -m 2770 /ztank/nfsv4root/containers/bitwarden
 ```
 
 ### nextcloud migration 用に必要なこと

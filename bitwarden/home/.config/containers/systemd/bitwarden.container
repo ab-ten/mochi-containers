@@ -10,6 +10,8 @@ ContainerName=bitwarden
 PublishPort=127.0.0.1:@@BITWARDEN_PORT@@:@@BW_PORT_HTTP@@
 Volume=@@BITWARDEN_DATA_DIR@@:/etc/bitwarden:Z
 Volume=@@BITWARDEN_BACKUP_DIR@@:/backups:Z
+Volume=@@NFS_ROOT@@/bitwarden:/backup_sync:rw
+Volume=@@SERVICE_PATH@@/container/backup_archive_transfer.sh:/usr/local/bin/backup_archive_transfer.sh:ro,Z
 Environment=BW_DOMAIN=@@BW_DOMAIN@@
 Environment=BW_ENABLE_SSL=@@BW_ENABLE_SSL@@
 Environment=BW_PORT_HTTP=@@BW_PORT_HTTP@@

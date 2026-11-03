@@ -1,0 +1,12 @@
+[Unit]
+Description=Transfer Bitwarden Lite backup daily between 09:30 and 10:00 JST
+
+[Timer]
+OnCalendar=*-*-* 09:30:00 Asia/Tokyo
+RandomizedDelaySec=30min
+AccuracySec=1us
+Persistent=true
+Unit=bitwarden-backup-archive-transfer.service
+
+[Install]
+WantedBy=timers.target
