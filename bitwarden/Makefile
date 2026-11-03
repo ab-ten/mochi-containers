@@ -4,9 +4,10 @@ SERVICE_NAME = bitwarden
 SERVICE_USER = bitwarden
 NFS_GROUP_CHECK = No
 BITWARDEN_PORT = 9003
-BITWARDEN_DATA_DIR = ${NFS_ROOT}/bitwarden/data
-UID_IN_PODMAN = 1000
-GID_IN_PODMAN = 1000
+UID_IN_PODMAN = 911
+GID_IN_PODMAN = 911
+BITWARDEN_DATA_DIR ?= ${INSTALL_ROOT}/bitwarden_data
+BITWARDEN_BACKUP_DIR ?= ${INSTALL_ROOT}/bitwarden_backup
 BW_DOMAIN = bitwarden.${CERT_DOMAIN}
 BW_ENABLE_SSL = false
 BW_PORT_HTTP = 8080
@@ -27,6 +28,7 @@ globalSettings__disableUserRegistration = true
 REPLACE_ADD_VAR = \
 	BITWARDEN_PORT \
 	BITWARDEN_DATA_DIR \
+	BITWARDEN_BACKUP_DIR \
 	BW_DOMAIN \
 	BW_ENABLE_SSL \
 	BW_PORT_HTTP \
@@ -59,46 +61,12 @@ pre-deploy-check-root:
 	fi
 
 pre-build-root:
-	@set -e; \
-	parent="${NFS_ROOT}/${SERVICE_NAME}"; \
-	dir="${BITWARDEN_DATA_DIR}"; \
-	uid="${UID_HOST_MAPPED}"; \
-	gid="${GID_HOST_MAPPED}"; \
-	service_uid=`id -u ${SERVICE_USER}`; \
-	if [ -z "$$uid" ] || [ -z "$$gid" ]; then \
-		echo "ERROR: UID/GID のマップが取得できません。"; \
+	if [ -z "${GID_HOST_MAPPED}" ]; then \
+		echo "ERROR: GID のマップが取得できません。"; \
 		exit 1; \
-	fi; \
-	if ! command -v setpriv >/dev/null 2>&1; then \
-		echo "ERROR: setpriv が見つかりません。util-linux をインストールしてください。"; \
-		exit 1; \
-	fi; \
-	if ! test -d "$$parent"; then \
-		if ! install -d -o "${SERVICE_USER}" -g "$$gid" -m 2770 "$$parent"; then \
-			echo "ERROR: 必要なディレクトリが存在しません。作成に失敗しました。 $$parent"; \
-			echo "ERROR: $$parent が NFS の場合は UsersSetup.md を参照し NFS サーバー側でディレクトリを作成してください。"; \
-			exit 1; \
-		fi; \
-	fi; \
-	chmod 2770 "$$parent" 2>/dev/null || true; \
-	if ! test -d "$$dir"; then \
-		if ! setpriv --reuid="$$service_uid" --regid="$$gid" --clear-groups -- \
-			sh -c "umask 007; install -d -m 2770 '$$dir'"; then \
-			echo "ERROR: 必要なディレクトリが存在しません。作成に失敗しました。 $$dir"; \
-			echo "ERROR: $$dir が NFS の場合は UsersSetup.md を参照し NFS サーバー側でディレクトリを作成してください。"; \
-			exit 1; \
-		fi; \
-	fi; \
-	chmod 2770 "$$dir" 2>/dev/null || true; \
-	tmpfile="$$dir/.write_test_$$"; \
-	if setpriv --reuid="$$uid" --regid="$$gid" --clear-groups -- sh -c "umask 002; : > '$$tmpfile'"; then \
-		setpriv --reuid="$$uid" --regid="$$gid" --clear-groups -- sh -c "rm '$$tmpfile'"; \
-	else \
-		echo "ERROR: UID_IN_PODMAN:GID_IN_PODMAN (${UID_IN_PODMAN}:${GID_IN_PODMAN}) で $$dir に書き込みできません。"; \
-		echo "対処: chgrp -R $$gid '$$dir'"; \
-		echo "対処: chmod -R g+rwX '$$dir'"; \
-		exit 1; \
-	fi
+	fi;
+	install -d -o "${SERVICE_USER}" -g "${SERVICE_USER}" -m 0750 "${BITWARDEN_DATA_DIR}"
+	install -d -o "${SERVICE_USER}" -g "${GID_HOST_MAPPED}" -m 0770 "${BITWARDEN_BACKUP_DIR}"
 
 endif
 
