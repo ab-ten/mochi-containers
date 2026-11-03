@@ -116,6 +116,46 @@ globalSettings__mail__smtp__port=25
 - `BW_ENABLE_SSL=false` とし、HTTPS 終端は nginx_rp に集約します。
 - `container/Containerfile` は公式イメージの `FROM` のみで、entrypoint へのパッチはありません。
 
+## バックアップからの復旧
+
+`scripts/generate_restore_quadlet.sh` は復旧時のみ実行し、デプロイ済みの Quadlet から手動リストア用の `bitwarden-restore.container` を生成します。引数は入力 Quadlet、出力 Quadlet、バックアップのファイル名（`.tar.gz` を含む）の3つです。ファイル名には ASCII 英数字、`.`、`_`、`-` のみ使用でき、ディレクトリは指定できません。
+
+対象アーカイブを `BITWARDEN_BACKUP_DIR` に置いてから、次の順序で実行します。スクリプトはアーカイブの存在を検査せず、通常サービスの DB 接続先・データ領域・環境変数をそのまま復元先として引き継ぎます。
+
+```sh
+sudo make bitwarden-login
+# bitwarden ユーザーでの操作
+systemctl  --user stop bitwarden.service
+
+sh /srv/project/bitwarden/scripts/generate_restore_quadlet.sh \
+    /home/bitwarden/.config/containers/systemd/bitwarden.container \
+    /home/bitwarden/.config/containers/systemd/bitwarden-restore.container \
+    bitwarden-lite_20261103_000000.tar.gz
+
+systemctl --user daemon-reload
+systemctl --user start bitwarden-restore.service
+```
+
+`/srv/project` は既定の `INSTALL_ROOT` の例です。実際の配置先に合わせてください。生成される復元コマンドは `/restore-db.sh /backups/<指定ファイル名> --clean --yes` です。`Type=oneshot` のため、上記の `systemctl start` は復元の終了まで待機し、失敗時は非0で終了します。起動タイムアウトは30分、再起動は行わず、正常終了後は `RemainAfterExit=no` により inactive になります。
+
+標準出力・標準エラーのログを実行中に確認する場合は、別の端末で次を実行します。`journalctl --follow` は復元終了後も待機するため、確認後に Ctrl+C で終了してください。
+
+```sh
+sudo make bitwarden-login
+
+journalctl --user -u bitwarden-restore.service -f -n 50
+```
+
+終了後のログは同じコマンドの `-f -n 50` を `-b --no-pager` に置き換えて確認できます。`systemctl start` 自体はサービスの標準出力を端末へ転送しません。
+
+systemd 258 以降では、`systemctl` の `--verbose` で起動処理中の unit ログを同じ端末に表示できます。上記の起動行を次のように置き換えると、復元の終了を待ちながらログを確認できます（[systemctl の公式仕様](https://www.freedesktop.org/software/systemd/man/latest/systemctl.html#--verbose)）。
+
+```sh
+systemctl --user --verbose start bitwarden-restore.service
+```
+
+生成ファイルには `#NOSTART` を付け、`[Install]` を含めません。ただし現在の deploy は `.container` の `#NOSTART` を判定せず起動するため、復旧中に deploy を実行しないでください。復元成功を確認したら、生成した `bitwarden-restore.container` を削除して `daemon-reload` を行い、`bitwarden.service` を起動して通常稼働へ戻します。失敗時は通常サービスを停止したままログを確認してください。
+
 ## 最小の復旧試験
 1. PostgreSQL DB のバックアップを検証用 DB へ復元します。
 2. `BITWARDEN_DATA_DIR` のバックアップを検証用の保存先へ復元します。
