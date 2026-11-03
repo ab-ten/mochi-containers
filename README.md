@@ -41,6 +41,14 @@ OpenSUSE MicroOS 上で **rootless Podman + systemd user unit** を使用し、*
 最短で動作させる手順は `docs/deploy-service.md` を参照してください。
 （クイックスタート用の短縮版は `QUICKSTART.md` に分離予定です）
 
+サービスユーザーのシェルを開くには、リポジトリルートで `make <service>-login` を実行します。例えば Bitwarden なら次のコマンドです。
+
+```sh
+make bitwarden-login
+```
+
+内部では `sudo machinectl -q shell "bitwarden@.host" /bin/bash` を実行し、ホスト上のサービスユーザーとして Bash を開きます。サービスディレクトリからは `make login` でも実行できます。対象ユーザーが作成済みで、`machinectl` と sudo の実行権限が必要です。終了するには `exit` を実行します。詳細は [デプロイ仕様のサービスユーザーのシェル](docs/DEPLOYMENT.md#サービスユーザーのシェル) を参照してください。
+
 ---
 
 ## Prerequisites (Key Assumptions)

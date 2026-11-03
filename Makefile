@@ -66,6 +66,8 @@ guard-no-local-customize:
 %-get-service-group:
 	@env -u SERVICE_GROUP SERVICE_PATH="${INSTALL_ROOT}/$*" $(MAKE) --no-print-directory -C "$*" get-service-group
 
+%-login:
+	$(MAKE) --no-print-directory -C "$*" login
 
 #
 install-pre-commit-hook: .git/hooks/pre-commit

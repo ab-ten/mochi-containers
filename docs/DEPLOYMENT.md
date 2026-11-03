@@ -93,6 +93,18 @@
 - 新しいサービスを `SERVICES` に追加した場合は、ルート `README.md` の「Services and Customization」に `<service>/README.md` を追記してください。
 - 同時に、追加したサービスの `README.md`（`<service>/README.md`）を作成または更新してください。
 
+## サービスユーザーのシェル
+
+リポジトリルートの `make <service>-login` は、対象サービスの `make login` を呼び出します。例えば `make bitwarden-login` と `make -C bitwarden login` は同じ操作です。
+
+共通ターゲット `mk/services.mk` の実行内容は次のとおりです。
+
+```sh
+sudo machinectl -q shell "${SERVICE_USER}@.host" /bin/bash
+```
+
+ホスト上のサービスユーザーとして対話用 Bash を開きます。コンテナ内のシェルを開く操作ではありません。対象ユーザーが作成済みで、`machinectl` と sudo の実行権限が必要です。シェルを終了するには `exit` を実行します。
+
 ## デプロイ前チェック（サービスごと） `scripts/pre-deploy-check.sh`
 1) サービス側 `Makefile` を経由して `mk/services.mk` から `scripts/pre-deploy-check.sh` が呼び出される。通常、各サービス側 `Makefile` は全 make 変数を export する指定が行われており、SERVICE_NAME や SERVICE_USER などが適切に定義され環境変数として設定されている。
 2) `Makefile` に `pre-deploy-check-user` / `pre-deploy-check-root` があれば先に実行される。
