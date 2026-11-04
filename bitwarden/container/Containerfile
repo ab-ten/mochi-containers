@@ -1,0 +1,4 @@
+FROM ghcr.io/bitwarden/lite:2026.10.1
+
+RUN set -eu; \
+    install -d -g 911 -m 2770 /backup_sync

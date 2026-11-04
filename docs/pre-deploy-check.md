@@ -63,19 +63,24 @@
    - `NFS_DIR="${NFS_ROOT}/${SERVICE_NAME}"` を決定。
    - 共有側で `NFS_ROOT` が `root:svc_nfs_clients` + `770` になっている前提。root では chown に失敗するため、`sudo -u "${SERVICE_USER}" install -d -m 0700 "${NFS_DIR}"` でサービスユーザー権限のまま作成する。
    - 既存なら `stat -c '%u %g'` で所有者をチェックし、サービスユーザーの UID/GID と一致しなければエラー終了（root では修正できない想定なので再作成を促すメッセージを出す）。
-7. systemd trigger unit 検証:
+7. systemd unit の起動指定の矛盾を検証:
+   - `home/.config/systemd/user/`、`home/.config/containers/systemd/`、`systemd/` の直下にある `*.service` / `*.socket` / `*.container` / `*.timer` / `*.path` を検査する。存在しないディレクトリとバックアップファイル `*~` は対象外。
+   - 同じファイルに行頭の `#NOSTART` と `[Install]` があれば、自動起動と起動抑止の指定が矛盾しているため、ファイルパスと理由を表示してエラー終了する。
+   - 判定は deploy 本体と同じ行頭一致とし、drop-in を合成した検証は行わない。
+8. systemd trigger unit 検証:
    - `scripts/check-systemd-trigger-services.sh` を呼び出し、`home/.config/systemd/user/`、`home/.config/containers/systemd/`、`systemd/` 配下の `*.path` / `*.socket` / `*.timer` を走査する。
    - `*.path` / `*.timer` は `Unit=`、`*.socket` は `Service=` を優先し、未指定時は同 basename の `.service` を既定値として扱う。
    - 参照先 `.service` が見つからない場合はエラーにする。
    - `home/.config/systemd/user/` 配下の trigger unit が参照する `.service` が同ディレクトリに無く、対応する `home/.config/containers/systemd/<basename>.container` がある場合は、その quadlet を参照先として扱う。
    - 参照先 unit には原則として `#NOSTART` が必要です。
    - ただし、timer 等からの通常起動とは別に、deploy 直後の起動も許可したい unit は `#FORCESTART` を付けることで例外的に許可します。
-8. 最終確認ログを出して終了（例: `echo "pre-deploy-check: ok for ${SERVICE_NAME}"`）。
+9. 最終確認ログを出して終了（例: `echo "pre-deploy-check: ok for ${SERVICE_NAME}"`）。
 
 ## エラー扱いと戻り値
 - どこか一つでも不整合があれば標準エラーに理由を出し、exit 1。
 - 期待以外のコマンドや権限不足で失敗した場合もそのまま非 0 を返す。
 
 ## 動作確認の目安
+- unit の起動指定: `[Install]` のみ、`#NOSTART` のみ、両方なしは通過し、両方ありは通常 unit / `.container` ともにファイルパス付きでエラー終了すること。ディレクトリ未存在と `*~` は許容すること。
 - 正常系: 既存ユーザー `nginx_rp` の HOME が一致し、`${NFS_ROOT}/nginx_rp` が無い状態で作成されること。
 - 異常系: `SERVICE_USER` に存在しないユーザーを渡した際に「ユーザー無し」で落ちること、HOME がズレている場合に検知すること、NFS ディレクトリの所有権がサービスユーザーと一致しない場合に検知すること、`*.path` / `*.socket` / `*.timer` が参照する service unit に `#NOSTART` / `#FORCESTART` のいずれも無い場合に検知すること。

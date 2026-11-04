@@ -1,0 +1,10 @@
+[Unit]
+Description=Transfer latest Bitwarden Lite backup archive to NFS
+After=bitwarden.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/podman exec --user bitwarden bitwarden /bin/sh /usr/local/bin/backup_archive_transfer.sh
+TimeoutStartSec=30min
+
+#NOSTART

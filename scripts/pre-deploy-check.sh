@@ -61,6 +61,21 @@ else
   fi
 fi
 
+info "unit の [Install] / #NOSTART の併記を検証"
+for unit_dir in \
+  "${START_DIR}/home/.config/systemd/user" \
+  "${START_DIR}/home/.config/containers/systemd" \
+  "${START_DIR}/systemd"; do
+  [ -d "${unit_dir}" ] || continue
+  while IFS= read -r -d '' unit_file; do
+    if grep -q '^#NOSTART' "${unit_file}" && grep -q '^\[Install\]' "${unit_file}"; then
+      err "${unit_file}: [Install] と #NOSTART は併記できません（自動起動と起動抑止の指定が矛盾しています）"
+    fi
+  done < <(find "${unit_dir}" -maxdepth 1 -type f \
+    \( -name '*.service' -o -name '*.socket' -o -name '*.container' -o -name '*.timer' -o -name '*.path' \) \
+    ! -name '*~' -print0)
+done
+
 info "trigger unit の #NOSTART / #FORCESTART 依存を検証"
 bash "${SCRIPT_DIR}/check-systemd-trigger-services.sh" "${START_DIR}"
 

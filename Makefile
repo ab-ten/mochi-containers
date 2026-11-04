@@ -1,7 +1,7 @@
 # project-root/Makefile
 
 export
-SERVICES = ssl_update nextcloud git_backend redmine trilium mail_service nginx_rp security_package host_services
+SERVICES = ssl_update nextcloud git_backend redmine trilium mail_service bitwarden nginx_rp security_package host_services
 INSTALL_ROOT = /srv/project
 NFS_ROOT = /srv/nfs/containers
 SERVICE_PREFIX = mochi
@@ -66,6 +66,8 @@ guard-no-local-customize:
 %-get-service-group:
 	@env -u SERVICE_GROUP SERVICE_PATH="${INSTALL_ROOT}/$*" $(MAKE) --no-print-directory -C "$*" get-service-group
 
+%-login:
+	$(MAKE) --no-print-directory -C "$*" login
 
 #
 install-pre-commit-hook: .git/hooks/pre-commit

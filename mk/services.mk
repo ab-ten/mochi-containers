@@ -67,6 +67,9 @@ get-service-user:
 get-service-group:
 	@printf '%s\n' "$(SERVICE_GROUP)"
 
+login:
+	sudo machinectl -q shell "${SERVICE_USER}@.host" /bin/bash
+
 deploy:
 	@echo
 	@echo "Checking $(SERVICE_NAME)..."

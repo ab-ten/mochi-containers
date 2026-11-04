@@ -93,6 +93,18 @@
 - 新しいサービスを `SERVICES` に追加した場合は、ルート `README.md` の「Services and Customization」に `<service>/README.md` を追記してください。
 - 同時に、追加したサービスの `README.md`（`<service>/README.md`）を作成または更新してください。
 
+## サービスユーザーのシェル
+
+リポジトリルートの `make <service>-login` は、対象サービスの `make login` を呼び出します。例えば `make bitwarden-login` と `make -C bitwarden login` は同じ操作です。
+
+共通ターゲット `mk/services.mk` の実行内容は次のとおりです。
+
+```sh
+sudo machinectl -q shell "${SERVICE_USER}@.host" /bin/bash
+```
+
+ホスト上のサービスユーザーとして対話用 Bash を開きます。コンテナ内のシェルを開く操作ではありません。対象ユーザーが作成済みで、`machinectl` と sudo の実行権限が必要です。シェルを終了するには `exit` を実行します。
+
 ## デプロイ前チェック（サービスごと） `scripts/pre-deploy-check.sh`
 1) サービス側 `Makefile` を経由して `mk/services.mk` から `scripts/pre-deploy-check.sh` が呼び出される。通常、各サービス側 `Makefile` は全 make 変数を export する指定が行われており、SERVICE_NAME や SERVICE_USER などが適切に定義され環境変数として設定されている。
 2) `Makefile` に `pre-deploy-check-user` / `pre-deploy-check-root` があれば先に実行される。
@@ -101,6 +113,7 @@
 5) `NFS_GROUP_CHECK=No` 以外の場合、`NFS_ROOT/<service>` をサービスユーザー権限で `install -d -m 0700` し、既存なら所有者が `SERVICE_USER` の UID/GID と一致するか確認します。ずれていたらエラー終了です。NFS チェック自体を無効化したいときは `NFS_GROUP_CHECK=No` を環境に渡します。`svc_nfs_clients` のグループ所属チェックは現在無効化されています。
 6) deploy 本体では `SERVICE_NAME/SERVICE_USER/SERVICE_PATH/INSTALL_ROOT/SERVICE_PREFIX/SECRETS_DIR` の必須チェックを行い、`SERVICE_PATH` が `INSTALL_ROOT/<service>` と一致しない場合はエラー終了します。`replace-deploy-vars.sh` と drop-in 収集の都合で `CERT_DOMAIN`/`MAP_LOCAL_ADDRESS`/`SERVICES` も必須となります。
 7) `scripts/check-systemd-trigger-services.sh` により `*.path` / `*.socket` / `*.timer` の参照先 service を検証します。参照先 unit には原則として `#NOSTART` が必要ですが、timer 運用を基本としつつ deploy 直後の起動も許可したい unit は `#FORCESTART` を付けることで例外的に許可されます。
+   この参照関係の検証前に、`home/.config/systemd/user/`、`home/.config/containers/systemd/`、`systemd/` 直下の `*.service` / `*.socket` / `*.container` / `*.timer` / `*.path` を検査します。同じファイルに行頭の `[Install]` と `#NOSTART` があれば、矛盾した起動指定としてファイルパスと理由を表示し、deploy 本体の実行前にエラー終了します。存在しないディレクトリとバックアップファイル `*~` は対象外で、drop-in を合成した検証は行いません。
 
 ## デプロイフロー（サービスごと）
 - 基本は「停止 → 配置 → pre-build → ビルド → post-build → systemd 配置 → 再起動」。中間生成物の掃除は次回ビルド開始時に行う。
